@@ -1,0 +1,36 @@
+{% extends "staff/base.html" %}
+{% block title %}Tra cứu KH - Nhân viên{% endblock %}
+{% block page_title %}<i class="bi bi-people"></i> Tra cứu Khách hàng{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header">Danh sách khách hàng</div>
+    <div class="card-body p-0"><div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>ID</th><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Hạng TV</th><th>Điểm TL</th><th>Tổng chi tiêu</th></tr></thead>
+            <tbody id="data-body"></tbody>
+        </table>
+    </div></div>
+</div>
+<div id="data-pager" class="mt-3"></div>
+{% endblock %}
+{% block scripts %}
+<script>
+let curPage=1;const PER_PAGE=20;
+async function loadData(p) {
+    curPage=p||1;
+    try {
+        const data = await apiFetch('/customers/?page='+curPage);
+        const items = data.results || data;
+        const count=data.count||items.length;
+        document.getElementById('data-body').innerHTML = items.length ? items.map(r => `<tr>
+            <td>${r.id}</td><td>${escapeHtml(r.full_name||'-')}</td><td>${escapeHtml(r.email||'-')}</td>
+            <td>${escapeHtml(r.phone_number||'-')}</td><td>${statusBadge(r.membership_level||'basic')}</td>
+            <td>${r.loyalty_points||0}</td><td>${formatMoney(r.total_spent)}</td>
+        </tr>`).join('') : '<tr><td colspan="7" class="text-center text-muted py-4">Chưa có khách hàng</td></tr>';
+        renderPagination('data-pager',count,curPage,PER_PAGE,'loadData');
+    } catch(e) { showToast('Lỗi', 'danger'); }
+    hideLoading();
+}
+loadData();
+</script>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "manager/base.html" %}
+{% block title %}Khách hàng - Quản lý{% endblock %}
+{% block page_title %}<i class="bi bi-people"></i> Quản lý Khách hàng{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center"><span>Danh sách khách hàng</span>
+        <button class="btn btn-primary btn-sm" onclick="openModal()"><i class="bi bi-plus-lg"></i> Thêm KH</button></div>
+    <div class="card-body p-0"><div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>ID</th><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Hạng</th><th>Điểm</th><th>Tổng chi</th><th>Thao tác</th></tr></thead>
+            <tbody id="data-body"></tbody>
+        </table>
+    </div></div>
+</div>
+<div id="data-pager" class="mt-3"></div>
+<div class="modal fade" id="formModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" id="modal-title">Thêm khách hàng</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body"><form class="row g-3"><input type="hidden" id="editId">
+        <div class="col-md-6"><label class="form-label">Username *</label><input type="text" class="form-control" id="f-username" required></div>
+        <div class="col-md-6"><label class="form-label">Email *</label><input type="email" class="form-control" id="f-email" required></div>
+        <div class="col-md-6"><label class="form-label">Mật khẩu *</label><input type="password" class="form-control" id="f-password"></div>
+        <div class="col-md-6"><label class="form-label">Họ tên *</label><input type="text" class="form-control" id="f-full_name" required></div>
+        <div class="col-md-6"><label class="form-label">SĐT</label><input type="text" class="form-control" id="f-phone_number"></div>
+        <div class="col-md-3"><label class="form-label">Giới tính</label><select class="form-select" id="f-gender"><option value="">--</option><option value="male">Nam</option><option value="female">Nữ</option><option value="other">Khác</option></select></div>
+        <div class="col-md-3"><label class="form-label">Ngày sinh</label><input type="date" class="form-control" id="f-date_of_birth"></div>
+    </form></div>
+    <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button><button class="btn btn-primary" onclick="saveItem()">Lưu</button></div>
+</div></div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const EP='/customers/';const FIELDS=['username','email','password','full_name','phone_number','gender','date_of_birth'];
+const memberBadge=l=>{const c={'gold':'warning','silver':'secondary','platinum':'info'};return `<span class="badge bg-${c[l]||'success'}">${escapeHtml(l)}</span>`;};
+let curPage=1;const PER_PAGE=20;
+async function loadData(p){curPage=p||1;try{const data=await apiFetch(EP+'?page='+curPage);const items=data.results||data;const count=data.count||items.length;
+    document.getElementById('data-body').innerHTML=items.length?items.map(r=>`<tr><td>${r.id}</td><td>${escapeHtml(r.full_name)}</td><td>${escapeHtml(r.email)}</td><td>${escapeHtml(r.phone_number||'-')}</td><td>${memberBadge(r.membership_level||'bronze')}</td><td>${r.loyalty_points||0}</td><td>${formatMoney(r.total_spent)}</td>
+    <td><button class="btn btn-outline-primary btn-action" onclick='editItem(${JSON.stringify(r).replace(/\x27/g,"&#39;")})'><i class="bi bi-pencil"></i></button><button class="btn btn-outline-danger btn-action" onclick="deleteItem(${r.id})"><i class="bi bi-trash"></i></button></td></tr>`).join(''):'<tr><td colspan="8" class="text-center text-muted py-4">Chưa có</td></tr>';
+renderPagination('data-pager',count,curPage,PER_PAGE,'loadData');}catch(e){showToast('Lỗi','danger');}hideLoading();}
+function openModal(item){document.getElementById('editId').value=item?item.id:'';document.getElementById('modal-title').textContent=item?'Sửa khách hàng':'Thêm khách hàng';FIELDS.forEach(f=>{const el=document.getElementById('f-'+f);if(el)el.value=item?(f==='password'?'':item[f]||''):'';});new bootstrap.Modal(document.getElementById('formModal')).show();}
+function editItem(item){openModal(item);}
+async function saveItem(){const id=document.getElementById('editId').value;const body={};FIELDS.forEach(f=>{const v=document.getElementById('f-'+f).value;if(v)body[f]=v;});
+try{if(id)await apiFetch(`${EP}${id}/`,{method:'PUT',body});else await apiFetch(EP,{method:'POST',body});bootstrap.Modal.getInstance(document.getElementById('formModal')).hide();showToast(id?'Đã cập nhật':'Đã thêm');loadData();}catch(e){showToast(JSON.stringify(e.data||'Lỗi'),'danger');}}
+async function deleteItem(id){if(!confirm('Chắc chắn xóa?'))return;try{await apiFetch(`${EP}${id}/`,{method:'DELETE'});showToast('Đã xóa');loadData();}catch(e){showToast('Lỗi','danger');}}
+loadData();
+</script>
+{% endblock %}

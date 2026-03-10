@@ -1,0 +1,67 @@
+{% extends "staff/base.html" %}
+{% block title %}Dashboard - Nhân viên{% endblock %}
+{% block page_title %}<i class="bi bi-speedometer2"></i> Dashboard Nhân viên{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4" id="stats-row"></div>
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-clock-history"></i> Đơn hàng chờ xử lý</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>Đơn #</th><th>Khách</th><th>Tổng tiền</th><th>Trạng thái</th></tr></thead>
+                    <tbody id="pending-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-truck"></i> Vận chuyển gần đây</div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>Shipment #</th><th>Tracking</th><th>Trạng thái</th></tr></thead>
+                    <tbody id="ship-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function loadDashboard() {
+    try {
+        const [orders, books, customers, shipments] = await Promise.all([
+            apiFetch('/orders/').catch(()=>({results:[]})),
+            apiFetch('/books/').catch(()=>({count:0})),
+            apiFetch('/customers/').catch(()=>({count:0})),
+            apiFetch('/shipments/').catch(()=>({results:[]})),
+        ]);
+        const allOrders = orders.results||orders;
+        const pendingOrders = allOrders.filter(o => ['pending','confirmed','processing'].includes(o.status));
+        const stats = [
+            {icon:'bi-receipt text-warning', value: pendingOrders.length, label:'Đơn chờ xử lý'},
+            {icon:'bi-journal-richtext text-primary', value: (books.results||books).length||books.count||0, label:'Tổng sách'},
+            {icon:'bi-people text-success', value: (customers.results||customers).length||customers.count||0, label:'Khách hàng'},
+            {icon:'bi-truck text-info', value: (shipments.results||shipments).length||0, label:'Vận chuyển'},
+        ];
+        document.getElementById('stats-row').innerHTML = stats.map(s => `
+            <div class="col-md-3 col-6"><div class="card stat-card">
+                <div class="stat-icon"><i class="bi ${s.icon}"></i></div>
+                <div class="stat-value">${s.value}</div>
+                <div class="stat-label">${s.label}</div>
+            </div></div>`).join('');
+        document.getElementById('pending-body').innerHTML = pendingOrders.length ?
+            pendingOrders.slice(0,8).map(o => `<tr><td>${escapeHtml(o.order_number||o.id)}</td><td>${o.customer_id||'-'}</td><td>${formatMoney(o.final_amount)}</td><td>${statusBadge(o.status)}</td></tr>`).join('') :
+            '<tr><td colspan="4" class="text-center text-muted py-3">Không có đơn chờ</td></tr>';
+        const allShips = shipments.results||shipments;
+        document.getElementById('ship-body').innerHTML = allShips.length ?
+            allShips.slice(0,8).map(s => `<tr><td>${escapeHtml(s.shipment_number||s.id)}</td><td>${escapeHtml(s.tracking_number||'-')}</td><td>${statusBadge(s.status)}</td></tr>`).join('') :
+            '<tr><td colspan="3" class="text-center text-muted py-3">Chưa có</td></tr>';
+    } catch(e) { console.error(e); }
+    hideLoading();
+}
+loadDashboard();
+</script>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends "customer/base.html" %}
+{% block title %}Tài khoản - BookStore{% endblock %}
+{% block content %}
+<h4 style="font-weight:700" class="mb-3"><i class="bi bi-person-circle me-2"></i>Tài khoản của tôi</h4>
+
+<div class="row g-4">
+    <!-- Profile card -->
+    <div class="col-lg-4">
+        <div class="card text-center p-4">
+            <div class="mx-auto mb-3" style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;font-size:2rem;font-weight:700;display:flex;align-items:center;justify-content:center" id="p-avatar">U</div>
+            <h5 class="fw-bold" id="p-fullname">-</h5>
+            <p class="text-muted mb-2" id="p-email">-</p>
+            <div class="d-flex justify-content-center gap-3 mb-3">
+                <div class="text-center"><div class="fw-bold" id="p-points">0</div><small class="text-muted">Điểm</small></div>
+                <div class="text-center"><div class="fw-bold" id="p-spent">0₫</div><small class="text-muted">Đã chi</small></div>
+                <div class="text-center"><span class="badge bg-info" id="p-level">Bronze</span><br><small class="text-muted">Hạng</small></div>
+            </div>
+            <button class="btn btn-outline-primary btn-sm" onclick="openEditProfile()"><i class="bi bi-pencil me-1"></i>Chỉnh sửa</button>
+        </div>
+    </div>
+    <!-- Info & Addresses -->
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header">Thông tin cá nhân</div>
+            <div class="card-body">
+                <div class="row g-2" style="font-size:.9rem">
+                    <div class="col-sm-6"><span class="text-muted">Tên đăng nhập:</span> <strong id="p-username">-</strong></div>
+                    <div class="col-sm-6"><span class="text-muted">SĐT:</span> <strong id="p-phone">-</strong></div>
+                    <div class="col-sm-6"><span class="text-muted">Giới tính:</span> <strong id="p-gender">-</strong></div>
+                    <div class="col-sm-6"><span class="text-muted">Ngày sinh:</span> <strong id="p-dob">-</strong></div>
+                </div>
+            </div>
+        </div>
+        <!-- Addresses -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Địa chỉ giao hàng</span>
+                <button class="btn btn-primary btn-sm" onclick="openAddrForm()"><i class="bi bi-plus-lg me-1"></i>Thêm</button>
+            </div>
+            <div class="card-body p-0">
+                <div id="addr-list" class="list-group list-group-flush"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit profile modal -->
+<div class="modal fade" id="editModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Chỉnh sửa thông tin</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body"><form class="row g-3">
+        <div class="col-12"><label class="form-label">Họ tên</label><input class="form-control" id="e-fullname"></div>
+        <div class="col-md-6"><label class="form-label">SĐT</label><input class="form-control" id="e-phone"></div>
+        <div class="col-md-6"><label class="form-label">Giới tính</label><select class="form-select" id="e-gender"><option value="">--</option><option value="male">Nam</option><option value="female">Nữ</option><option value="other">Khác</option></select></div>
+        <div class="col-md-6"><label class="form-label">Ngày sinh</label><input type="date" class="form-control" id="e-dob"></div>
+    </form></div>
+    <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button><button class="btn btn-primary" onclick="saveProfile()">Lưu</button></div>
+</div></div></div>
+
+<!-- Add address modal -->
+<div class="modal fade" id="addrModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" id="addr-modal-title">Thêm địa chỉ</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body"><form class="row g-3"><input type="hidden" id="a-id">
+        <div class="col-md-6"><label class="form-label">Người nhận *</label><input class="form-control" id="a-name"></div>
+        <div class="col-md-6"><label class="form-label">SĐT *</label><input class="form-control" id="a-phone"></div>
+        <div class="col-12"><label class="form-label">Địa chỉ *</label><input class="form-control" id="a-line1"></div>
+        <div class="col-md-4"><label class="form-label">Phường/Xã</label><input class="form-control" id="a-ward"></div>
+        <div class="col-md-4"><label class="form-label">Quận/Huyện</label><input class="form-control" id="a-district"></div>
+        <div class="col-md-4"><label class="form-label">Thành phố *</label><input class="form-control" id="a-city"></div>
+        <div class="col-md-6"><label class="form-label">Loại</label><select class="form-select" id="a-type"><option value="home">Nhà riêng</option><option value="office">Văn phòng</option><option value="other">Khác</option></select></div>
+    </form></div>
+    <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button><button class="btn btn-primary" onclick="saveAddr()">Lưu</button></div>
+</div></div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const u=getUser();
+if(!u)window.location.href='/login/';
+const genderMap={male:'Nam',female:'Nữ',other:'Khác'};
+
+async function loadProfile(){
+    try{
+        const p=await apiFetch('/customers/'+u.id+'/');
+        document.getElementById('p-avatar').textContent=(p.full_name||p.username||'U').charAt(0).toUpperCase();
+        document.getElementById('p-fullname').textContent=p.full_name||p.username;
+        document.getElementById('p-email').textContent=p.email;
+        document.getElementById('p-username').textContent=p.username;
+        document.getElementById('p-phone').textContent=p.phone_number||'-';
+        document.getElementById('p-gender').textContent=genderMap[p.gender]||'-';
+        document.getElementById('p-dob').textContent=p.date_of_birth||'-';
+        document.getElementById('p-points').textContent=p.loyalty_points||0;
+        document.getElementById('p-spent').textContent=formatMoney(p.total_spent);
+        document.getElementById('p-level').textContent=p.membership_level||'Bronze';
+        // Update localStorage
+        setUser(p,getUserRole());
+    }catch(e){showToast('Lỗi tải profile','danger');}
+    hideLoading();
+}
+
+function openEditProfile(){
+    const u2=getUser();
+    document.getElementById('e-fullname').value=u2.full_name||'';
+    document.getElementById('e-phone').value=u2.phone_number||'';
+    document.getElementById('e-gender').value=u2.gender||'';
+    document.getElementById('e-dob').value=u2.date_of_birth||'';
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+
+async function saveProfile(){
+    const body={
+        full_name:document.getElementById('e-fullname').value,
+        phone_number:document.getElementById('e-phone').value,
+        gender:document.getElementById('e-gender').value,
+        date_of_birth:document.getElementById('e-dob').value||null,
+    };
+    try{
+        await apiFetch('/customers/'+u.id+'/',{method:'PATCH',body});
+        bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+        showToast('Đã cập nhật');
+        loadProfile();
+    }catch(e){showToast('Lỗi cập nhật','danger');}
+}
+
+/* ─── Addresses ─── */
+async function loadAddresses(){
+    try{
+        const data=await apiFetch('/customers/'+u.id+'/addresses/');
+        const addrs=data.results||data;
+        window._addrs=addrs;
+        const list=document.getElementById('addr-list');
+        if(!addrs.length){list.innerHTML='<div class="p-3 text-muted text-center">Chưa có địa chỉ</div>';return;}
+        list.innerHTML=addrs.map((a,i)=>`
+            <div class="list-group-item d-flex align-items-start gap-3 py-3">
+                <div style="flex:1">
+                    <strong>${escapeHtml(a.recipient_name)}</strong> ${a.is_default?'<span class="badge bg-primary ms-1">Mặc định</span>':''}
+                    <div class="text-muted" style="font-size:.85rem">${escapeHtml(a.phone_number)}</div>
+                    <div style="font-size:.85rem">${escapeHtml(a.address_line1)}${a.ward?', '+escapeHtml(a.ward):''}${a.district?', '+escapeHtml(a.district):''}, ${escapeHtml(a.city)}</div>
+                </div>
+                <div class="d-flex gap-1">
+                    ${!a.is_default?`<button class="btn btn-sm btn-outline-primary" onclick="setDefault(${a.id})"><i class="bi bi-check2"></i></button>`:''}
+                    <button class="btn btn-sm btn-outline-secondary" onclick="editAddr(${i})"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteAddr(${a.id})"><i class="bi bi-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+    }catch(e){}
+}
+
+function openAddrForm(a){
+    document.getElementById('addr-modal-title').textContent=a?'Sửa địa chỉ':'Thêm địa chỉ';
+    document.getElementById('a-id').value=a?a.id:'';
+    document.getElementById('a-name').value=a?a.recipient_name:'';
+    document.getElementById('a-phone').value=a?a.phone_number:'';
+    document.getElementById('a-line1').value=a?a.address_line1:'';
+    document.getElementById('a-ward').value=a?a.ward||'':'';
+    document.getElementById('a-district').value=a?a.district||'':'';
+    document.getElementById('a-city').value=a?a.city:'';
+    document.getElementById('a-type').value=a?a.address_type||'home':'home';
+    new bootstrap.Modal(document.getElementById('addrModal')).show();
+}
+function editAddr(idx){openAddrForm(window._addrs[idx]);}
+
+async function saveAddr(){
+    const id=document.getElementById('a-id').value;
+    const body={
+        customer:u.id,
+        recipient_name:document.getElementById('a-name').value,
+        phone_number:document.getElementById('a-phone').value,
+        address_line1:document.getElementById('a-line1').value,
+        ward:document.getElementById('a-ward').value,
+        district:document.getElementById('a-district').value,
+        city:document.getElementById('a-city').value,
+        address_type:document.getElementById('a-type').value,
+    };
+    if(!body.recipient_name||!body.phone_number||!body.address_line1||!body.city){showToast('Điền đầy đủ thông tin','danger');return;}
+    try{
+        if(id)await apiFetch('/customers/addresses/'+id+'/',{method:'PUT',body});
+        else await apiFetch('/customers/addresses/',{method:'POST',body});
+        bootstrap.Modal.getInstance(document.getElementById('addrModal')).hide();
+        showToast(id?'Đã cập nhật':'Đã thêm');loadAddresses();
+    }catch(e){showToast('Lỗi','danger');}
+}
+
+async function deleteAddr(id){
+    if(!confirm('Xóa địa chỉ này?'))return;
+    try{await apiFetch('/customers/addresses/'+id+'/',{method:'DELETE'});showToast('Đã xóa');loadAddresses();}catch(e){showToast('Lỗi','danger');}
+}
+
+async function setDefault(id){
+    try{await apiFetch('/customers/addresses/'+id+'/set_default/',{method:'POST'});showToast('Đã đặt mặc định');loadAddresses();}catch(e){showToast('Lỗi','danger');}
+}
+
+loadProfile();
+loadAddresses();
+</script>
+{% endblock %}

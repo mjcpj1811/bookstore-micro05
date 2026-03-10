@@ -1,0 +1,225 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  staff-service:
+    build:
+      context: .
+      dockerfile: staff_service/Dockerfile
+    ports:
+      - "8001:8001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=123456
+
+  manager-service:
+    build:
+      context: .
+      dockerfile: manager_service/Dockerfile
+    ports:
+      - "8002:8002"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=123456
+      - STAFF_SERVICE_URL=http://staff-service:8001
+      - BOOK_SERVICE_URL=http://book-service:8005
+      - ORDER_SERVICE_URL=http://order-service:8007
+
+  customer-service:
+    build:
+      context: .
+      dockerfile: customer_service/Dockerfile
+    ports:
+      - "8003:8003"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=123456
+      - CART_SERVICE_URL=http://cart-service:8006
+
+  catalog-service:
+    build:
+      context: .
+      dockerfile: catalog_service/Dockerfile
+    ports:
+      - "8004:8004"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=123456
+
+  book-service:
+    build:
+      context: .
+      dockerfile: book_service/Dockerfile
+    ports:
+      - "8005:8005"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=123456
+
+  cart-service:
+    build:
+      context: .
+      dockerfile: cart_service/Dockerfile
+    ports:
+      - "8006:8006"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=123456
+      - BOOK_SERVICE_URL=http://book-service:8005
+
+  order-service:
+    build:
+      context: .
+      dockerfile: order_service/Dockerfile
+    ports:
+      - "8007:8007"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=123456
+      - CART_SERVICE_URL=http://cart-service:8006
+      - BOOK_SERVICE_URL=http://book-service:8005
+      - PAY_SERVICE_URL=http://pay-service:8009
+      - SHIP_SERVICE_URL=http://ship-service:8008
+
+  ship-service:
+    build:
+      context: .
+      dockerfile: ship_service/Dockerfile
+    ports:
+      - "8008:8008"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=123456
+
+  pay-service:
+    build:
+      context: .
+      dockerfile: pay_service/Dockerfile
+    ports:
+      - "8009:8009"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=123456
+
+  comment-rate-service:
+    build:
+      context: .
+      dockerfile: comment_rate_service/Dockerfile
+    ports:
+      - "8010:8010"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=123456
+      - BOOK_SERVICE_URL=http://book-service:8005
+
+  recommender-ai-service:
+    build:
+      context: .
+      dockerfile: recommender_ai_service/Dockerfile
+    ports:
+      - "8011:8011"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=123456
+      - BOOK_SERVICE_URL=http://book-service:8005
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api_gateway/Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - staff-service
+      - manager-service
+      - customer-service
+      - catalog-service
+      - book-service
+      - cart-service
+      - order-service
+      - ship-service
+      - pay-service
+      - comment-rate-service
+      - recommender-ai-service
+    environment:
+      - STAFF_SERVICE_URL=http://staff-service:8001
+      - MANAGER_SERVICE_URL=http://manager-service:8002
+      - CUSTOMER_SERVICE_URL=http://customer-service:8003
+      - CATALOG_SERVICE_URL=http://catalog-service:8004
+      - BOOK_SERVICE_URL=http://book-service:8005
+      - CART_SERVICE_URL=http://cart-service:8006
+      - ORDER_SERVICE_URL=http://order-service:8007
+      - SHIP_SERVICE_URL=http://ship-service:8008
+      - PAY_SERVICE_URL=http://pay-service:8009
+      - COMMENT_RATE_SERVICE_URL=http://comment-rate-service:8010
+      - RECOMMENDER_AI_SERVICE_URL=http://recommender-ai-service:8011
+
+volumes:
+  mysql_data:

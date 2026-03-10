@@ -1,0 +1,250 @@
+{% extends "customer/base.html" %}
+{% block title %}Giỏ hàng - BookStore{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 style="font-weight:700"><i class="bi bi-cart3 me-2"></i>Giỏ hàng của bạn</h4>
+    <a href="/customer/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Tiếp tục mua</a>
+</div>
+
+<!-- Empty state -->
+<div id="cart-empty" style="display:none" class="text-center py-5">
+    <i class="bi bi-cart-x" style="font-size:4rem;color:var(--gray-300)"></i>
+    <p class="text-muted mt-2 mb-3">Giỏ hàng trống</p>
+    <a href="/customer/" class="btn btn-primary">Khám phá sách</a>
+</div>
+
+<!-- Cart content -->
+<div id="cart-content" style="display:none">
+    <div class="row g-4">
+        <!-- Cart items -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Sản phẩm (<span id="item-count">0</span>)</span>
+                    <button class="btn btn-outline-danger btn-sm" onclick="clearCart()"><i class="bi bi-trash me-1"></i>Xóa tất cả</button>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table mb-0">
+                        <thead><tr><th style="width:45%">Sách</th><th>Đơn giá</th><th style="width:130px">Số lượng</th><th>Thành tiền</th><th></th></tr></thead>
+                        <tbody id="cart-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- Summary & checkout -->
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header">Tóm tắt đơn hàng</div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2"><span class="text-muted">Tạm tính</span><span id="sum-subtotal">0₫</span></div>
+                    <div class="d-flex justify-content-between mb-2"><span class="text-muted">Phí vận chuyển</span><span class="text-success">Miễn phí</span></div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3"><strong>Tổng cộng</strong><strong style="color:#ef4444;font-size:1.15rem" id="sum-total">0₫</strong></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">Thông tin thanh toán</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Địa chỉ giao hàng</label>
+                        <select class="form-select" id="ck-address"><option value="">Chọn địa chỉ...</option></select>
+                        <button class="btn btn-link btn-sm p-0 mt-1" onclick="openAddressModal()"><i class="bi bi-plus-circle me-1"></i>Thêm địa chỉ mới</button>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phương thức thanh toán</label>
+                        <select class="form-select" id="ck-payment"><option value="cod">Thanh toán khi nhận hàng (COD)</option></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Đơn vị vận chuyển</label>
+                        <select class="form-select" id="ck-carrier"><option value="standard">Giao hàng tiêu chuẩn</option></select>
+                    </div>
+                    <button class="btn btn-primary w-100 py-2" onclick="checkout()" id="btn-checkout">
+                        <i class="bi bi-lock me-1"></i>Đặt hàng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add address modal -->
+<div class="modal fade" id="addressModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Thêm địa chỉ giao hàng</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body"><form class="row g-3">
+        <div class="col-md-6"><label class="form-label">Người nhận *</label><input class="form-control" id="addr-name" required></div>
+        <div class="col-md-6"><label class="form-label">Số điện thoại *</label><input class="form-control" id="addr-phone" required></div>
+        <div class="col-12"><label class="form-label">Địa chỉ *</label><input class="form-control" id="addr-line1" required></div>
+        <div class="col-md-4"><label class="form-label">Phường/Xã</label><input class="form-control" id="addr-ward"></div>
+        <div class="col-md-4"><label class="form-label">Quận/Huyện</label><input class="form-control" id="addr-district"></div>
+        <div class="col-md-4"><label class="form-label">Thành phố *</label><input class="form-control" id="addr-city" required></div>
+    </form></div>
+    <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button><button class="btn btn-primary" onclick="saveAddress()">Lưu</button></div>
+</div></div></div>
+
+<!-- Order success modal -->
+<div class="modal fade" id="successModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content text-center p-4">
+    <i class="bi bi-check-circle" style="font-size:4rem;color:#22c55e"></i>
+    <h4 class="mt-3 fw-bold">Đặt hàng thành công!</h4>
+    <p class="text-muted" id="success-msg"></p>
+    <div class="d-flex gap-2 justify-content-center mt-2">
+        <a href="/customer/orders/" class="btn btn-primary">Xem đơn hàng</a>
+        <a href="/customer/" class="btn btn-outline-secondary">Tiếp tục mua</a>
+    </div>
+</div></div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+let cartData=null;
+const u=getUser();
+if(!u){window.location.href='/login/';}
+
+async function loadCart(){
+    if(!u)return;
+    try{
+        cartData=await apiFetch('/carts/my_cart/?customer_id='+u.id);
+        const items=cartData.items||[];
+        if(!items.length){
+            document.getElementById('cart-empty').style.display='';
+            document.getElementById('cart-content').style.display='none';
+        }else{
+            document.getElementById('cart-empty').style.display='none';
+            document.getElementById('cart-content').style.display='';
+            document.getElementById('item-count').textContent=items.length;
+            document.getElementById('cart-body').innerHTML=items.map(it=>`
+                <tr>
+                    <td><strong>${escapeHtml(it.book_title||'Sách #'+it.book_id)}</strong><br><small class="text-muted">ID: ${it.book_id}</small></td>
+                    <td>${formatMoney(it.price)}</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-1">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="updateQty(${it.book_id},${it.quantity-1})">−</button>
+                            <span class="px-2">${it.quantity}</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="updateQty(${it.book_id},${it.quantity+1})">+</button>
+                        </div>
+                    </td>
+                    <td><strong>${formatMoney(it.line_total)}</strong></td>
+                    <td><button class="btn btn-sm btn-outline-danger" onclick="removeItem(${it.book_id})"><i class="bi bi-x-lg"></i></button></td>
+                </tr>
+            `).join('');
+            document.getElementById('sum-subtotal').textContent=formatMoney(cartData.subtotal);
+            document.getElementById('sum-total').textContent=formatMoney(cartData.subtotal);
+        }
+        updateCartBadge(cartData.total_items||0);
+    }catch(e){showToast('Không thể tải giỏ hàng','danger');}
+    hideLoading();
+}
+
+async function updateQty(bookId,qty){
+    if(qty<=0){removeItem(bookId);return;}
+    try{
+        await apiFetch(`/carts/${cartData.id}/update_item/`,{method:'POST',body:{book_id:bookId,quantity:qty}});
+        loadCart();
+    }catch(e){showToast('Lỗi cập nhật','danger');}
+}
+
+async function removeItem(bookId){
+    try{
+        await apiFetch(`/carts/${cartData.id}/remove_item/`,{method:'POST',body:{book_id:bookId}});
+        showToast('Đã xóa');loadCart();
+    }catch(e){showToast('Lỗi','danger');}
+}
+
+async function clearCart(){
+    if(!confirm('Xóa tất cả sản phẩm trong giỏ?'))return;
+    try{
+        await apiFetch(`/carts/${cartData.id}/clear/`,{method:'POST'});
+        showToast('Đã xóa giỏ hàng');loadCart();
+    }catch(e){showToast('Lỗi','danger');}
+}
+
+/* ─── Addresses ─── */
+async function loadAddresses(){
+    try{
+        const addrs=await apiFetch('/customers/'+u.id+'/addresses/');
+        const sel=document.getElementById('ck-address');
+        sel.innerHTML='<option value="">Chọn địa chỉ...</option>';
+        (addrs.results||addrs).forEach(a=>{
+            sel.innerHTML+=`<option value="${a.id}" ${a.is_default?'selected':''}>${escapeHtml(a.recipient_name)} - ${escapeHtml(a.address_line1)}, ${escapeHtml(a.city)}</option>`;
+        });
+    }catch(e){}
+}
+
+function openAddressModal(){new bootstrap.Modal(document.getElementById('addressModal')).show();}
+
+async function saveAddress(){
+    const body={
+        customer:u.id,
+        recipient_name:document.getElementById('addr-name').value,
+        phone_number:document.getElementById('addr-phone').value,
+        address_line1:document.getElementById('addr-line1').value,
+        ward:document.getElementById('addr-ward').value,
+        district:document.getElementById('addr-district').value,
+        city:document.getElementById('addr-city').value,
+    };
+    if(!body.recipient_name||!body.phone_number||!body.address_line1||!body.city){showToast('Vui lòng điền đầy đủ','danger');return;}
+    try{
+        await apiFetch('/customers/addresses/',{method:'POST',body});
+        bootstrap.Modal.getInstance(document.getElementById('addressModal')).hide();
+        showToast('Đã thêm địa chỉ');
+        loadAddresses();
+    }catch(e){showToast('Lỗi: '+(e.data?JSON.stringify(e.data):''),'danger');}
+}
+
+/* ─── Payment methods & Carriers ─── */
+async function loadPaymentMethods(){
+    try{
+        const data=await apiFetch('/payments/methods/');
+        const methods=data.results||data;
+        if(methods.length){
+            const sel=document.getElementById('ck-payment');
+            sel.innerHTML=methods.map(m=>`<option value="${escapeHtml(m.code)}">${escapeHtml(m.name)}</option>`).join('');
+        }
+    }catch(e){}
+}
+
+async function loadCarriers(){
+    try{
+        const data=await apiFetch('/shipments/carriers/');
+        const carriers=data.results||data;
+        if(carriers.length){
+            const sel=document.getElementById('ck-carrier');
+            sel.innerHTML=carriers.map(c=>`<option value="${escapeHtml(c.code)}">${escapeHtml(c.name)}</option>`).join('');
+        }
+    }catch(e){}
+}
+
+/* ─── Checkout ─── */
+async function checkout(){
+    const addrId=document.getElementById('ck-address').value;
+    const payment=document.getElementById('ck-payment').value;
+    const carrier=document.getElementById('ck-carrier').value;
+
+    if(!addrId){showToast('Vui lòng chọn địa chỉ giao hàng','danger');return;}
+
+    const btn=document.getElementById('btn-checkout');
+    btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Đang xử lý...';
+
+    try{
+        const order=await apiFetch('/orders/checkout/',{method:'POST',body:{
+            customer_id:u.id,
+            shipping_address_id:parseInt(addrId),
+            payment_method:payment,
+            carrier_code:carrier,
+        }});
+        document.getElementById('success-msg').textContent='Mã đơn hàng: '+(order.order_number||order.id);
+        // Track purchase behavior for recommendation
+        if(order.items)order.items.forEach(it=>trackBehavior(it.book_id,'purchase'));
+        new bootstrap.Modal(document.getElementById('successModal')).show();
+        loadCart();
+    }catch(e){
+        showToast(e.data?.error||'Đặt hàng thất bại','danger');
+    }finally{
+        btn.disabled=false;btn.innerHTML='<i class="bi bi-lock me-1"></i>Đặt hàng';
+    }
+}
+
+loadCart();
+loadAddresses();
+loadPaymentMethods();
+loadCarriers();
+</script>
+{% endblock %}

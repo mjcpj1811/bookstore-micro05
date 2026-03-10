@@ -1,0 +1,105 @@
+{% extends "customer/base.html" %}
+{% block title %}Gợi ý cho bạn - BookStore{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 style="font-weight:700"><i class="bi bi-lightbulb me-2"></i>Gợi ý cho bạn</h4>
+    <button class="btn btn-outline-primary btn-sm" onclick="generateRecs()"><i class="bi bi-arrow-clockwise me-1"></i>Tạo gợi ý mới</button>
+</div>
+
+<div id="rec-empty" style="display:none" class="text-center py-5">
+    <i class="bi bi-stars" style="font-size:4rem;color:var(--gray-300)"></i>
+    <p class="text-muted mt-2 mb-3">Chưa có gợi ý nào. Hãy mua sắm để nhận gợi ý!</p>
+    <button class="btn btn-primary" onclick="generateRecs()"><i class="bi bi-magic me-1"></i>Tạo gợi ý</button>
+</div>
+
+<div class="row g-3" id="rec-grid"></div>
+<div id="rec-pager" class="mt-3"></div>
+{% endblock %}
+{% block extra_css %}
+{{ block.super }}
+.rec-card{background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:var(--transition)}
+.rec-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+.rec-card .rec-body{padding:1rem}
+.rec-card .rec-score{display:inline-block;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;font-size:.7rem;font-weight:600;padding:.2em .6em;border-radius:.4rem}
+{% endblock %}
+{% block scripts %}
+<script>
+const u=getUser();
+if(!u)window.location.href='/login/';
+let recPage=1;const REC_PER_PAGE=8;
+
+async function loadRecs(){
+    try{
+        const data=await apiFetch('/recommendations/?customer_id='+u.id+'&page='+recPage);
+        const recs=data.results||data;
+        const count=data.count||recs.length;
+        if(!recs.length&&recPage===1){
+            document.getElementById('rec-empty').style.display='';
+            document.getElementById('rec-grid').innerHTML='';
+        }else{
+            document.getElementById('rec-empty').style.display='none';
+            // Fetch book details for recommendations
+            const bookIds=[...new Set(recs.map(r=>r.book_id))];
+            const bookMap={};
+            await Promise.all(bookIds.map(async id=>{
+                try{const b=await apiFetch('/books/'+id+'/');bookMap[id]=b;}catch(e){}
+            }));
+            document.getElementById('rec-grid').innerHTML=recs.map(r=>{
+                const b=bookMap[r.book_id]||{};
+                const hasDiscount=b.discount_price&&b.discount_price<b.price;
+                return`<div class="col-6 col-md-4 col-lg-3">
+                    <div class="rec-card">
+                        <div style="height:180px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer" onclick="viewRecBook(${r.book_id})">
+                            ${b.cover_image?`<img src="${escapeHtml(b.cover_image)}" style="width:100%;height:100%;object-fit:cover">`:`<i class="bi bi-book" style="font-size:3rem;color:var(--gray-300)"></i>`}
+                        </div>
+                        <div class="rec-body">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <a href="javascript:void(0)" onclick="viewRecBook(${r.book_id})" style="font-size:.9rem;font-weight:600;color:var(--gray-800)">${escapeHtml(b.title||'Sách #'+r.book_id)}</a>
+                                <span class="rec-score">${Math.round((r.score||0)*100)}%</span>
+                            </div>
+                            ${b.price?`<div class="mb-2"><span style="color:#ef4444;font-weight:700">${formatMoney(hasDiscount?b.discount_price:b.price)}</span>${hasDiscount?` <small class="text-muted text-decoration-line-through">${formatMoney(b.price)}</small>`:''}</div>`:''}
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary btn-sm flex-fill" onclick="addRecToCart(${r.book_id})"><i class="bi bi-cart-plus me-1"></i>Thêm giỏ</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        renderPagination('rec-pager',count,recPage,REC_PER_PAGE,'goRecPage');
+    }catch(e){showToast('Không thể tải gợi ý','danger');}
+    hideLoading();
+}
+function goRecPage(p){recPage=p;loadRecs();}
+
+async function generateRecs(){
+    showLoading();
+    try{
+        await apiFetch('/recommendations/generate/',{method:'POST',body:{customer_id:u.id}});
+        showToast('Đã tạo gợi ý mới!');
+        loadRecs();
+    }catch(e){showToast(e.data?.error||'Không thể tạo gợi ý','danger');hideLoading();}
+}
+
+async function addRecToCart(bookId){
+    try{
+        const cart=await apiFetch('/carts/my_cart/?customer_id='+u.id);
+        await apiFetch(`/carts/${cart.id}/add_item/`,{method:'POST',body:{book_id:bookId,quantity:1}});
+        trackBehavior(bookId,'add_to_cart');
+        showToast('Đã thêm vào giỏ hàng!');
+        const c2=await apiFetch('/carts/my_cart/?customer_id='+u.id);
+        updateCartBadge(c2.total_items||0);
+    }catch(e){showToast('Lỗi','danger');}
+}
+
+async function clickRec(recId){
+    try{await apiFetch('/recommendations/'+recId+'/click/',{method:'POST'});}catch(e){}
+}
+
+function viewRecBook(bookId){
+    window.location.href='/?book='+bookId;
+}
+
+loadRecs();
+</script>
+{% endblock %}

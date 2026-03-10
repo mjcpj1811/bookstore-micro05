@@ -1,0 +1,28 @@
+{% extends "manager/base.html" %}
+{% block title %}Đánh giá - Quản lý{% endblock %}
+{% block page_title %}<i class="bi bi-chat-square-text"></i> Quản lý Đánh giá{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header">Danh sách đánh giá</div>
+    <div class="card-body p-0"><div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>ID</th><th>Sách (ID)</th><th>Khách (ID)</th><th>Điểm</th><th>Nội dung</th><th>Ngày</th><th>Thao tác</th></tr></thead>
+            <tbody id="data-body"></tbody>
+        </table>
+    </div></div>
+</div>
+<div id="data-pager" class="mt-3"></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const EP='/reviews/';
+function stars(n){return '★'.repeat(n)+'☆'.repeat(5-n);}
+let curPage=1;const PER_PAGE=20;
+async function loadData(p){curPage=p||1;try{const data=await apiFetch(EP+'?page='+curPage);const items=data.results||data;const count=data.count||items.length;
+    document.getElementById('data-body').innerHTML=items.length?items.map(r=>`<tr><td>${r.id}</td><td>${r.book_id}</td><td>${r.customer_id}</td><td><span style="color:#f59e0b">${stars(r.rating)}</span></td><td>${escapeHtml((r.comment||'').substring(0,60))}</td><td>${formatDate(r.created_at)}</td>
+    <td><button class="btn btn-outline-danger btn-action" onclick="deleteItem(${r.id})"><i class="bi bi-trash"></i></button></td></tr>`).join(''):'<tr><td colspan="7" class="text-center text-muted py-4">Chưa có</td></tr>';
+renderPagination('data-pager',count,curPage,PER_PAGE,'loadData');}catch(e){showToast('Lỗi','danger');}hideLoading();}
+async function deleteItem(id){if(!confirm('Xóa đánh giá này?'))return;try{await apiFetch(`${EP}${id}/`,{method:'DELETE'});showToast('Đã xóa');loadData();}catch(e){showToast('Lỗi','danger');}}
+loadData();
+</script>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Đăng ký - BookStore{% endblock %}
+{% block extra_css %}
+body{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem 0}
+.reg-box{background:#fff;border-radius:1rem;box-shadow:0 20px 60px rgba(0,0,0,.2);padding:2.5rem;width:100%;max-width:480px}
+.reg-box .brand{text-align:center;margin-bottom:1.5rem}
+.reg-box .brand h3{font-weight:800;color:var(--gray-800)}
+.reg-box .brand i{font-size:2.5rem;color:#6366f1}
+{% endblock %}
+{% block body_content %}
+<div class="reg-box">
+    <div class="brand">
+        <i class="bi bi-book-half"></i>
+        <h3>Tạo tài khoản</h3>
+        <p class="text-muted" style="font-size:.9rem">Đăng ký để bắt đầu mua sắm</p>
+    </div>
+    <div id="reg-error" class="alert alert-danger py-2" style="display:none;font-size:.85rem"></div>
+    <form onsubmit="doRegister(event)">
+        <div class="row g-3 mb-3">
+            <div class="col-md-6"><label class="form-label">Tên đăng nhập *</label><input type="text" class="form-control" id="r-user" required></div>
+            <div class="col-md-6"><label class="form-label">Email *</label><input type="email" class="form-control" id="r-email" required></div>
+            <div class="col-md-6"><label class="form-label">Mật khẩu *</label><input type="password" class="form-control" id="r-pass" required minlength="6"></div>
+            <div class="col-md-6"><label class="form-label">Họ và tên *</label><input type="text" class="form-control" id="r-name" required></div>
+            <div class="col-md-6"><label class="form-label">Số điện thoại</label><input type="text" class="form-control" id="r-phone"></div>
+            <div class="col-md-6"><label class="form-label">Giới tính</label><select class="form-select" id="r-gender"><option value="">--</option><option value="male">Nam</option><option value="female">Nữ</option><option value="other">Khác</option></select></div>
+        </div>
+        <button type="submit" class="btn btn-primary w-100 py-2 mb-3" id="btn-reg">Đăng ký</button>
+    </form>
+    <div class="text-center" style="font-size:.88rem">
+        Đã có tài khoản? <a href="/login/" style="color:#6366f1;font-weight:600">Đăng nhập</a>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function doRegister(e){
+    e.preventDefault();
+    const errEl=document.getElementById('reg-error');
+    errEl.style.display='none';
+    const btn=document.getElementById('btn-reg');
+    btn.disabled=true;btn.textContent='Đang tạo tài khoản...';
+
+    const body={
+        username:document.getElementById('r-user').value.trim(),
+        email:document.getElementById('r-email').value.trim(),
+        password:document.getElementById('r-pass').value,
+        full_name:document.getElementById('r-name').value.trim(),
+        phone_number:document.getElementById('r-phone').value.trim()||null,
+        gender:document.getElementById('r-gender').value||null,
+    };
+
+    try{
+        const data=await apiFetch('/customers/',{method:'POST',body});
+        setUser(data,'customer');
+        window.location.href='/customer/';
+    }catch(err){
+        const msgs=err.data;
+        if(typeof msgs==='object'){
+            errEl.textContent=Object.entries(msgs).map(([k,v])=>k+': '+(Array.isArray(v)?v.join(', '):v)).join('. ');
+        }else{
+            errEl.textContent=msgs||'Đăng ký thất bại';
+        }
+        errEl.style.display='';
+    }finally{
+        btn.disabled=false;btn.textContent='Đăng ký';
+    }
+}
+</script>
+{% endblock %}

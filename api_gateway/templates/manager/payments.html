@@ -1,0 +1,59 @@
+{% extends "manager/base.html" %}
+{% block title %}Thanh toán - Quản lý{% endblock %}
+{% block page_title %}<i class="bi bi-credit-card"></i> Quản lý Thanh toán{% endblock %}
+{% block content %}
+<ul class="nav nav-tabs mb-3"><li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-payments">Thanh toán</a></li><li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-methods">Phương thức TT</a></li></ul>
+<div class="tab-content">
+<div class="tab-pane fade show active" id="tab-payments">
+    <div class="card"><div class="card-body p-0"><div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>ID</th><th>Đơn hàng</th><th>Phương thức</th><th>Số tiền</th><th>Trạng thái</th><th>Ngày TT</th><th>Thao tác</th></tr></thead>
+            <tbody id="pay-body"></tbody>
+        </table>
+    </div></div></div>
+</div>
+<div id="pay-pager" class="mt-2"></div>
+<div class="tab-pane fade" id="tab-methods">
+    <div class="card"><div class="card-header d-flex justify-content-between align-items-center"><span>Phương thức thanh toán</span>
+        <button class="btn btn-primary btn-sm" onclick="openMethodModal()"><i class="bi bi-plus-lg"></i> Thêm</button></div>
+    <div class="card-body p-0"><div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>ID</th><th>Tên</th><th>Mô tả</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody id="method-body"></tbody>
+        </table>
+    </div></div></div>
+</div>
+</div>
+<div class="modal fade" id="methodModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" id="method-title">Thêm PTTT</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body"><form class="row g-3"><input type="hidden" id="mEditId">
+        <div class="col-12"><label class="form-label">Tên *</label><input type="text" class="form-control" id="m-name" required></div>
+        <div class="col-12"><label class="form-label">Mô tả</label><textarea class="form-control" id="m-description" rows="2"></textarea></div>
+        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="m-is_active" checked><label class="form-check-label" for="m-is_active">Hoạt động</label></div></div>
+    </form></div>
+    <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button><button class="btn btn-primary" onclick="saveMethod()">Lưu</button></div>
+</div></div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+let payPage=1;const PAY_PER_PAGE=20;
+async function loadPayments(p){payPage=p||1;try{const data=await apiFetch('/payments/?page='+payPage);const items=data.results||data;const count=data.count||items.length;
+    document.getElementById('pay-body').innerHTML=items.length?items.map(r=>`<tr><td>${r.id}</td><td>#${r.order_id} ${r.order_number?'('+escapeHtml(r.order_number)+')':''}</td><td>${escapeHtml(r.method_name||'-')}</td><td>${formatMoney(r.amount)}</td><td>${statusBadge(r.status)}</td><td>${formatDate(r.payment_date||r.created_at)}</td>
+    <td><button class="btn btn-outline-danger btn-action" onclick="deletePay(${r.id})"><i class="bi bi-trash"></i></button></td></tr>`).join(''):'<tr><td colspan="7" class="text-center text-muted py-4">Chưa có</td></tr>';
+renderPagination('pay-pager',count,payPage,PAY_PER_PAGE,'loadPayments');}catch(e){showToast('Lỗi','danger');}hideLoading();}
+async function deletePay(id){if(!confirm('Xóa?'))return;try{await apiFetch(`/payments/${id}/`,{method:'DELETE'});showToast('Đã xóa');loadPayments();}catch(e){showToast('Lỗi','danger');}}
+
+async function loadMethods(){try{const data=await apiFetch('/payments/methods/');const items=data.results||data;
+    document.getElementById('method-body').innerHTML=items.length?items.map(r=>`<tr><td>${r.id}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml((r.description||'').substring(0,40))}</td><td>${r.is_active!==false?'<span class="badge bg-success">Đang dùng</span>':'<span class="badge bg-secondary">Ẩn</span>'}</td>
+    <td><button class="btn btn-outline-primary btn-action" onclick='editMethod(${JSON.stringify(r).replace(/\x27/g,"&#39;")})'><i class="bi bi-pencil"></i></button><button class="btn btn-outline-danger btn-action" onclick="deleteMethod(${r.id})"><i class="bi bi-trash"></i></button></td></tr>`).join(''):'<tr><td colspan="5" class="text-center text-muted py-4">Chưa có</td></tr>';
+}catch(e){}}
+function openMethodModal(item){document.getElementById('mEditId').value=item?item.id:'';document.getElementById('method-title').textContent=item?'Sửa PTTT':'Thêm PTTT';
+document.getElementById('m-name').value=item?item.name:'';document.getElementById('m-description').value=item?item.description||'':'';document.getElementById('m-is_active').checked=item?item.is_active!==false:true;
+new bootstrap.Modal(document.getElementById('methodModal')).show();}
+function editMethod(item){openMethodModal(item);}
+async function saveMethod(){const id=document.getElementById('mEditId').value;const body={name:document.getElementById('m-name').value,description:document.getElementById('m-description').value,is_active:document.getElementById('m-is_active').checked};
+try{if(id)await apiFetch(`/payments/methods/${id}/`,{method:'PUT',body});else await apiFetch('/payments/methods/',{method:'POST',body});bootstrap.Modal.getInstance(document.getElementById('methodModal')).hide();showToast(id?'Đã cập nhật':'Đã thêm');loadMethods();}catch(e){showToast(JSON.stringify(e.data||'Lỗi'),'danger');}}
+async function deleteMethod(id){if(!confirm('Xóa?'))return;try{await apiFetch(`/payments/methods/${id}/`,{method:'DELETE'});showToast('Đã xóa');loadMethods();}catch(e){showToast('Lỗi','danger');}}
+loadPayments();loadMethods();
+</script>
+{% endblock %}

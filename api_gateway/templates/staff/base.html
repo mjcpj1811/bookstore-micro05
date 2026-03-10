@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block extra_css %}
+:root { --sidebar-width: 260px; --staff-accent: #f59e0b; --sidebar-bg: #1e293b; }
+.sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-width); background: var(--sidebar-bg); color: #fff;
+    overflow-y: auto; z-index: 1000; transition: var(--transition);
+    box-shadow: 4px 0 20px rgba(0,0,0,.15);
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+.sidebar .brand {
+    padding: 1.25rem 1.5rem; font-size: 1.2rem; font-weight: 800;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    display: flex; align-items: center; gap: .6rem; letter-spacing: -.01em;
+}
+.sidebar .brand i { color: var(--staff-accent); font-size: 1.4rem; }
+.sidebar .nav-link {
+    color: rgba(255,255,255,.55); padding: .6rem 1.5rem;
+    display: flex; align-items: center; gap: .7rem; font-size: .88rem;
+    font-weight: 500; transition: var(--transition); border-left: 3px solid transparent;
+    margin: 1px 0;
+}
+.sidebar .nav-link:hover { color: rgba(255,255,255,.9); background: rgba(255,255,255,.05); }
+.sidebar .nav-link.active {
+    color: #fff; background: rgba(245,158,11,.08);
+    border-left-color: var(--staff-accent); font-weight: 600;
+}
+.sidebar .nav-link.active i { color: var(--staff-accent); }
+.sidebar .nav-section {
+    padding: .75rem 1.5rem .35rem; font-size: .65rem;
+    text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.25); margin-top: .5rem;
+    font-weight: 600;
+}
+.main-content { margin-left: var(--sidebar-width); min-height: 100vh; background: var(--gray-50); }
+.top-bar {
+    background: rgba(255,255,255,.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    padding: .85rem 1.75rem; border-bottom: 1px solid var(--gray-100);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 99;
+}
+.top-bar h5 { font-weight: 700; color: var(--gray-800); font-size: 1.1rem; }
+.top-bar .badge-role {
+    background: linear-gradient(135deg, var(--staff-accent), #d97706); color: #000;
+    font-weight: 600; padding: .4em .8em; border-radius: .5rem; font-size: .78rem;
+}
+.content-area { padding: 1.75rem; }
+.top-bar .user-dropdown .dropdown-toggle { display: flex; align-items: center; gap: .5rem; text-decoration: none; padding: .35rem .75rem; border-radius: .5rem; transition: var(--transition); cursor: pointer; }
+.top-bar .user-dropdown .dropdown-toggle:hover { background: var(--gray-100); }
+.top-bar .user-dropdown .user-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; color: #fff; background: linear-gradient(135deg, var(--staff-accent), #d97706); }
+.top-bar .user-dropdown .user-name { font-weight: 600; font-size: .85rem; color: var(--gray-700); }
+.top-bar .user-dropdown .user-role { font-size: .7rem; color: var(--gray-400); }
+@media (max-width: 991px) {
+    .sidebar { transform: translateX(-100%); }
+    .main-content { margin-left: 0; }
+}
+{% endblock %}
+{% block body_content %}
+<nav class="sidebar">
+    <div class="brand"><i class="bi bi-person-workspace"></i> Nhân viên</div>
+    <div class="nav-section">Tổng quan</div>
+    <a href="/staff/" class="nav-link {% if active_page == 'staff_dashboard' %}active{% endif %}">
+        <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+    <div class="nav-section">Vận hành</div>
+    <a href="/staff/orders/" class="nav-link {% if active_page == 'staff_orders' %}active{% endif %}">
+        <i class="bi bi-receipt"></i> Đơn hàng
+    </a>
+    <a href="/staff/shipments/" class="nav-link {% if active_page == 'staff_shipments' %}active{% endif %}">
+        <i class="bi bi-truck"></i> Vận chuyển
+    </a>
+    <div class="nav-section">Kho hàng</div>
+    <a href="/staff/books/" class="nav-link {% if active_page == 'staff_books' %}active{% endif %}">
+        <i class="bi bi-journal-richtext"></i> Sách
+    </a>
+    <div class="nav-section">Khách hàng</div>
+    <a href="/staff/customers/" class="nav-link {% if active_page == 'staff_customers' %}active{% endif %}">
+        <i class="bi bi-people"></i> Tra cứu KH
+    </a>
+    <hr style="border-color:rgba(255,255,255,.06);margin:.75rem 1.25rem">
+    <a href="/" class="nav-link"><i class="bi bi-house-door"></i> Trang chủ</a>
+    <a href="#" class="nav-link" onclick="logout();return false;"><i class="bi bi-box-arrow-left"></i> Đăng xuất</a>
+</nav>
+<script>if(!requireRole(['staff','manager']))document.body.innerHTML='';</script>
+<div class="main-content">
+    <div class="top-bar">
+        <h5 class="mb-0">{% block page_title %}Dashboard{% endblock %}</h5>
+        <div class="user-dropdown dropdown">
+            <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="user-avatar" id="staff-avatar">S</div>
+                <div class="d-none d-md-block">
+                    <div class="user-name" id="staff-uname">Staff</div>
+                    <div class="user-role">Nhân viên</div>
+                </div>
+                <i class="bi bi-chevron-down" style="font-size:.7rem;color:var(--gray-400)"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width:220px;border-radius:var(--radius)">
+                <li class="px-3 py-2 border-bottom">
+                    <small class="text-muted">Đang đăng nhập</small><br>
+                    <strong id="staff-fullname" style="font-size:.9rem">Staff</strong>
+                </li>
+                <li><a class="dropdown-item py-2" href="/"><i class="bi bi-house-door me-2"></i>Trang chủ</a></li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li><a class="dropdown-item py-2 text-danger" href="#" onclick="logout();return false;"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+            </ul>
+        </div>
+        <script>{
+            const u=getUser();
+            if(u) {
+                document.getElementById('staff-avatar').textContent=(u.full_name||u.username||'S').charAt(0).toUpperCase();
+                document.getElementById('staff-uname').textContent=u.full_name||u.username;
+                document.getElementById('staff-fullname').textContent=u.full_name||u.username;
+            }
+        }</script>
+    </div>
+    <div class="content-area">
+        <div id="loading" class="show">
+            <div class="spinner-border" style="color:var(--staff-accent)" role="status"><span class="visually-hidden">Loading...</span></div>
+        </div>
+        {% block content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

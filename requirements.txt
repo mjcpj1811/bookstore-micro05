@@ -1,0 +1,7 @@
+Django>=4.2,<5.3
+djangorestframework>=3.14
+mysqlclient>=2.2
+django-cors-headers>=4.3
+requests>=2.31
+PyJWT>=2.8
+python-dotenv>=1.0

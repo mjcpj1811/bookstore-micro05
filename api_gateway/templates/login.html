@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Đăng nhập - BookStore{% endblock %}
+{% block extra_css %}
+body{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;display:flex;align-items:center;justify-content:center}
+.login-box{background:#fff;border-radius:1rem;box-shadow:0 20px 60px rgba(0,0,0,.2);padding:2.5rem;width:100%;max-width:420px}
+.login-box .brand{text-align:center;margin-bottom:1.5rem}
+.login-box .brand h3{font-weight:800;color:var(--gray-800)}
+.login-box .brand i{font-size:2.5rem;color:#6366f1}
+{% endblock %}
+{% block body_content %}
+<div class="login-box">
+    <div class="brand">
+        <i class="bi bi-book-half"></i>
+        <h3>BookStore</h3>
+        <p class="text-muted" style="font-size:.9rem">Đăng nhập để tiếp tục</p>
+    </div>
+    <div id="login-error" class="alert alert-danger py-2" style="display:none;font-size:.85rem"></div>
+    <form onsubmit="doLogin(event)">
+        <div class="mb-3">
+            <label class="form-label">Tên đăng nhập</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                <input type="text" class="form-control" id="lg-user" placeholder="username" required autofocus>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Mật khẩu</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                <input type="password" class="form-control" id="lg-pass" placeholder="password" required>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary w-100 py-2 mb-3" id="btn-login">Đăng nhập</button>
+    </form>
+    <div class="text-center" style="font-size:.88rem">
+        Chưa có tài khoản? <a href="/register/" style="color:#6366f1;font-weight:600">Đăng ký</a>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function tryLogin(endpoint, body) {
+    try {
+        const data = await apiFetch(endpoint, { method: 'POST', body });
+        return data;
+    } catch (e) {
+        return null;
+    }
+}
+
+async function doLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('lg-user').value.trim();
+    const password = document.getElementById('lg-pass').value;
+    const errEl = document.getElementById('login-error');
+    errEl.style.display = 'none';
+    const btn = document.getElementById('btn-login');
+    btn.disabled = true; btn.textContent = 'Đang đăng nhập...';
+
+    const body = { username, password };
+    const [custData, staffData, mgrData] = await Promise.all([
+        tryLogin('/customers/login/', body),
+        tryLogin('/staff/login/', body),
+        tryLogin('/manager/login/', body)
+    ]);
+
+    if (mgrData) {
+        setUser(mgrData, 'manager');
+        window.location.href = '/manager/';
+    } else if (staffData) {
+        setUser(staffData, 'staff');
+        window.location.href = '/staff/';
+    } else if (custData) {
+        setUser(custData, 'customer');
+        window.location.href = '/customer/';
+    } else {
+        errEl.textContent = 'Sai tên đăng nhập hoặc mật khẩu';
+        errEl.style.display = '';
+        btn.disabled = false; btn.textContent = 'Đăng nhập';
+    }
+}
+// If already logged in, redirect
+const existingUser = getUser();
+if (existingUser) {
+    const role = getUserRole();
+    if (role === 'customer') window.location.href = '/customer/';
+    else if (role === 'staff') window.location.href = '/staff/';
+    else if (role === 'manager') window.location.href = '/manager/';
+}
+</script>
+{% endblock %}

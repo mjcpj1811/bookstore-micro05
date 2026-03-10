@@ -1,0 +1,377 @@
+{% extends "customer/base.html" %}
+{% block title %}Trang chủ - BookStore{% endblock %}
+{% block content %}
+<!-- Hero -->
+<div class="home-hero mb-4">
+    <div class="row align-items-center">
+        <div class="col-lg-7">
+            <h1 style="font-weight:800;font-size:2rem;color:var(--gray-900)">Khám phá thế giới sách <span style="color:var(--cust-accent)">📚</span></h1>
+            <p class="text-muted mb-3">Tìm kiếm hàng ngàn đầu sách với giá tốt nhất. Giao hàng nhanh chóng trên toàn quốc.</p>
+            <div class="d-flex gap-2 flex-wrap">
+                <div class="input-group" style="max-width:400px">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control border-start-0" id="search-input" placeholder="Tìm sách theo tên, ISBN..." oninput="debounceSearch()">
+                </div>
+                <select class="form-select" style="max-width:160px" id="sort-select" onchange="bookPage=1;loadBooks()">
+                    <option value="">Mới nhất</option>
+                    <option value="price_asc">Giá tăng</option>
+                    <option value="price_desc">Giá giảm</option>
+                    <option value="rating">Đánh giá</option>
+                    <option value="bestseller">Bán chạy</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Category filter -->
+<div class="mb-3 d-flex gap-2 flex-wrap" id="cat-filter">
+    <button class="btn btn-sm btn-primary" onclick="filterCat(null)">Tất cả</button>
+</div>
+
+<!-- Book grid -->
+<div class="row g-3" id="book-grid"></div>
+<div id="book-pager"></div>
+
+<!-- Book detail modal -->
+<div class="modal fade" id="bookModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" id="bm-title"></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <div class="row">
+            <div class="col-md-4 text-center mb-3"><img id="bm-img" src="" class="img-fluid rounded" style="max-height:320px;object-fit:cover"></div>
+            <div class="col-md-8">
+                <p id="bm-desc" class="text-muted" style="font-size:.9rem"></p>
+                <table class="table table-sm"><tbody id="bm-info"></tbody></table>
+                <div class="d-flex align-items-center gap-3 mt-3">
+                    <div>
+                        <span class="text-muted text-decoration-line-through" id="bm-orig-price" style="font-size:.85rem"></span>
+                        <span class="fw-bold fs-5" style="color:#ef4444" id="bm-price"></span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 auth-only">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="changeQty(-1)">−</button>
+                        <input type="number" id="bm-qty" value="1" min="1" style="width:50px;text-align:center" class="form-control form-control-sm">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="changeQty(1)">+</button>
+                    </div>
+                    <button class="btn btn-primary auth-only" onclick="addToCartFromModal()"><i class="bi bi-cart-plus me-1"></i>Thêm giỏ hàng</button>
+                </div>
+            </div>
+        </div>
+        <!-- Reviews section -->
+        <hr class="my-3">
+        <h6 class="fw-bold mb-3"><i class="bi bi-chat-left-text me-1"></i>Đánh giá từ khách hàng <span class="badge bg-secondary" id="bm-review-count">0</span></h6>
+        <!-- My review form -->
+        <div id="bm-my-review" style="display:none">
+            <div class="card mb-3" style="background:var(--gray-50);border:1px dashed var(--gray-200)">
+                <div class="card-body py-2 px-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <strong style="font-size:.85rem" id="rv-form-title">✐ Viết đánh giá của bạn</strong>
+                        <span id="rv-form-badge" style="display:none" class="badge bg-info" style="font-size:.7rem">Đang sửa</span>
+                    </div>
+                    <div class="star-picker mb-2" id="rv-stars">
+                        <i class="bi bi-star" data-v="1"></i>
+                        <i class="bi bi-star" data-v="2"></i>
+                        <i class="bi bi-star" data-v="3"></i>
+                        <i class="bi bi-star" data-v="4"></i>
+                        <i class="bi bi-star" data-v="5"></i>
+                    </div>
+                    <input type="hidden" id="rv-id" value="">
+                    <input class="form-control form-control-sm mb-2" id="rv-title-input" placeholder="Tiêu đề (đánh giá ngắn gọn)">
+                    <textarea class="form-control form-control-sm mb-2" id="rv-comment-input" rows="2" placeholder="Nhận xét chi tiết..."></textarea>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-primary" onclick="submitReview()"><i class="bi bi-send me-1"></i>Gửi</button>
+                        <button class="btn btn-sm btn-outline-danger" id="rv-delete-btn" style="display:none" onclick="deleteMyReview()"><i class="bi bi-trash me-1"></i>Xóa</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="bm-reviews"><div class="text-muted text-center py-3" style="font-size:.88rem">Đang tải đánh giá...</div></div>
+    </div>
+</div></div></div>
+{% endblock %}
+{% block extra_css %}
+{{ block.super }}
+.bk-card{border-radius:var(--radius);overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:var(--transition);cursor:pointer;height:100%;display:flex;flex-direction:column}
+.bk-card:hover{transform:translateY(-3px);box-shadow:0 8px 25px rgba(0,0,0,.1)}
+.bk-card .bk-img{height:200px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.bk-card .bk-img img{width:100%;height:100%;object-fit:cover}
+.bk-card .bk-img .no-img{color:var(--gray-300);font-size:3rem}
+.bk-card .bk-body{padding:.85rem;flex:1;display:flex;flex-direction:column}
+.bk-card .bk-title{font-weight:600;font-size:.9rem;color:var(--gray-800);margin-bottom:.3rem;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.bk-card .bk-author{font-size:.78rem;color:var(--gray-400);margin-bottom:.5rem}
+.bk-card .bk-price-row{margin-top:auto;display:flex;align-items:center;gap:.5rem}
+.bk-card .bk-price{font-weight:700;color:#ef4444;font-size:1rem}
+.bk-card .bk-orig{font-size:.8rem;color:var(--gray-400);text-decoration:line-through}
+.bk-card .bk-rating{font-size:.78rem;color:#f59e0b}
+.bk-card .bk-badge{position:absolute;top:8px;left:8px;font-size:.7rem}
+.bk-card .bk-cart-btn{border:none;background:var(--cust-accent);color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:var(--transition);cursor:pointer;margin-left:auto;font-size:.9rem}
+.bk-card .bk-cart-btn:hover{background:var(--primary-dark);transform:scale(1.1)}
+.rv-item{padding:.75rem 0;border-bottom:1px solid var(--gray-100)}.rv-item:last-child{border-bottom:none}
+.rv-stars{color:#f59e0b;font-size:.85rem}.rv-meta{font-size:.78rem;color:var(--gray-400)}
+.rv-comment{font-size:.88rem;color:var(--gray-700);margin-top:.3rem}
+.star-picker i{font-size:1.4rem;cursor:pointer;color:var(--gray-300);transition:color .15s}.star-picker i.active,.star-picker i:hover{color:#f59e0b}
+.star-picker i:hover~i{color:var(--gray-300)}
+{% endblock %}
+{% block scripts %}
+<script>
+let allBooks=[], selectedCat=null, searchTimer=null, currentBook=null, bookPage=1, bookCount=0;
+const BOOK_PER_PAGE=20;
+
+async function loadCategories(){
+    try{
+        const data=await apiFetch('/catalog/categories/');
+        const cats=data.results||data;
+        const box=document.getElementById('cat-filter');
+        cats.forEach(c=>{
+            box.insertAdjacentHTML('beforeend',`<button class="btn btn-sm btn-outline-secondary cat-btn" data-id="${c.id}" onclick="filterCat(${c.id})">${escapeHtml(c.name)}</button>`);
+        });
+    }catch(e){}
+}
+
+function filterCat(id){
+    selectedCat=id;
+    document.querySelectorAll('#cat-filter .btn').forEach(b=>{
+        b.classList.remove('btn-primary');b.classList.add('btn-outline-secondary');
+    });
+    if(id===null){
+        document.querySelector('#cat-filter .btn').classList.add('btn-primary');
+        document.querySelector('#cat-filter .btn').classList.remove('btn-outline-secondary');
+    }else{
+        const b=document.querySelector(`#cat-filter [data-id="${id}"]`);
+        if(b){b.classList.add('btn-primary');b.classList.remove('btn-outline-secondary');}
+    }
+    bookPage=1;loadBooks();
+}
+
+function debounceSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>{bookPage=1;loadBooks();},350);}
+
+async function loadBooks(){
+    const search=document.getElementById('search-input').value.trim();
+    const sort=document.getElementById('sort-select').value;
+    let params=[];
+    if(search)params.push('search='+encodeURIComponent(search));
+    if(sort)params.push('sort='+sort);
+    if(selectedCat)params.push('category_id='+selectedCat);
+    params.push('is_active=true');
+    params.push('page='+bookPage);
+    const qs='?'+params.join('&');
+    try{
+        const data=await apiFetch('/books/'+qs);
+        allBooks=data.results||data;
+        bookCount=data.count||allBooks.length;
+        renderBooks();
+        renderPagination('book-pager',bookCount,bookPage,BOOK_PER_PAGE,'goBookPage');
+    }catch(e){showToast('Không thể tải sách','danger');}
+    hideLoading();
+}
+function goBookPage(p){bookPage=p;loadBooks();window.scrollTo({top:0,behavior:'smooth'});}
+
+function renderBooks(){
+    const grid=document.getElementById('book-grid');
+    if(!allBooks.length){grid.innerHTML='<div class="col-12 text-center text-muted py-5"><i class="bi bi-inbox" style="font-size:3rem"></i><p class="mt-2">Không tìm thấy sách nào</p></div>';return;}
+    grid.innerHTML=allBooks.map(b=>{
+        const hasDiscount=b.discount_price&&b.discount_price<b.price;
+        const price=hasDiscount?b.discount_price:b.price;
+        const stars=b.rating?'★'.repeat(Math.round(b.rating))+'☆'.repeat(5-Math.round(b.rating)):'';
+        return`<div class="col-6 col-md-4 col-lg-3 col-xl-2">
+            <div class="bk-card" onclick="openDetail(${b.id})">
+                <div class="bk-img">
+                    ${b.cover_image?`<img src="${escapeHtml(b.cover_image)}" alt="">`:`<i class="bi bi-book no-img"></i>`}
+                    ${hasDiscount?`<span class="badge bg-danger bk-badge">-${Math.round((1-b.discount_price/b.price)*100)}%</span>`:''}
+                    ${b.stock<=0?`<span class="badge bg-secondary bk-badge" style="right:8px;left:auto">Hết hàng</span>`:''}
+                </div>
+                <div class="bk-body">
+                    <div class="bk-title">${escapeHtml(b.title)}</div>
+                    <div class="bk-author">${b.isbn||''}</div>
+                    ${stars?`<div class="bk-rating">${stars} <span style="color:var(--gray-400)">(${b.rating})</span></div>`:''}
+                    <div class="bk-price-row">
+                        <span class="bk-price">${formatMoney(price)}</span>
+                        ${hasDiscount?`<span class="bk-orig">${formatMoney(b.price)}</span>`:''}
+                        ${b.stock>0?`<div class="bk-cart-btn auth-only" onclick="event.stopPropagation();quickAdd(${b.id})" title="Thêm giỏ hàng"><i class="bi bi-cart-plus"></i></div>`:''}
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+    // Re-apply auth visibility
+    const u=getUser();
+    if(!u)document.querySelectorAll('.auth-only').forEach(el=>el.style.display='none');
+}
+
+function openDetail(id){
+    const b=allBooks.find(x=>x.id===id);if(!b)return;
+    currentBook=b;
+    const hasDiscount=b.discount_price&&b.discount_price<b.price;
+    document.getElementById('bm-title').textContent=b.title;
+    document.getElementById('bm-desc').textContent=b.description||'Chưa có mô tả.';
+    document.getElementById('bm-img').src=b.cover_image||'';
+    document.getElementById('bm-img').style.display=b.cover_image?'':'none';
+    document.getElementById('bm-price').textContent=formatMoney(hasDiscount?b.discount_price:b.price);
+    document.getElementById('bm-orig-price').textContent=hasDiscount?formatMoney(b.price):'';
+    document.getElementById('bm-qty').value=1;
+    document.getElementById('bm-info').innerHTML=`
+        <tr><td class="text-muted" style="width:120px">ISBN</td><td>${escapeHtml(b.isbn||'-')}</td></tr>
+        <tr><td class="text-muted">Ngôn ngữ</td><td>${escapeHtml(b.language||'-')}</td></tr>
+        <tr><td class="text-muted">Số trang</td><td>${b.pages||'-'}</td></tr>
+        <tr><td class="text-muted">Định dạng</td><td>${escapeHtml(b.format||'-')}</td></tr>
+        <tr><td class="text-muted">Kho</td><td>${b.stock>0?`<span class="badge bg-success">Còn ${b.stock}</span>`:'<span class="badge bg-danger">Hết hàng</span>'}</td></tr>
+        <tr><td class="text-muted">Đánh giá</td><td>${b.rating?'★'.repeat(Math.round(b.rating))+' '+b.rating+'/5':'-'}</td></tr>
+    `;
+    // Re-apply auth visibility
+    const u=getUser();
+    if(!u)document.querySelectorAll('#bookModal .auth-only').forEach(el=>el.style.display='none');
+    new bootstrap.Modal(document.getElementById('bookModal')).show();
+    trackBehavior(b.id,'view');
+    loadBookReviews(b.id);
+}
+
+async function loadBookReviews(bookId){
+    const box=document.getElementById('bm-reviews');
+    const countEl=document.getElementById('bm-review-count');
+    box.innerHTML='<div class="text-muted text-center py-3" style="font-size:.88rem">Đang tải đánh giá...</div>';
+    // Reset review form
+    resetReviewForm();
+    const me=getUser();
+    try{
+        const data=await apiFetch('/reviews/?book_id='+bookId);
+        const reviews=data.results||data;
+        countEl.textContent=reviews.length;
+        // Check if current user already reviewed
+        if(me){
+            const myReview=reviews.find(r=>r.customer_id===me.id);
+            if(myReview) fillReviewForm(myReview);
+            document.getElementById('bm-my-review').style.display='block';
+        }
+        if(!reviews.length){
+            box.innerHTML='<div class="text-muted text-center py-3" style="font-size:.88rem"><i class="bi bi-chat-left"></i> Chưa có đánh giá nào cho sách này</div>';
+            return;
+        }
+        box.innerHTML=reviews.map(r=>{
+            const stars='★'.repeat(r.rating)+'☆'.repeat(5-r.rating);
+            const isMe=me&&r.customer_id===me.id;
+            return`<div class="rv-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div><span class="rv-stars">${stars}</span> <strong style="font-size:.85rem">${escapeHtml(r.title||'')}</strong></div>
+                    <span class="rv-meta">${formatDate(r.created_at)}${isMe?' <span class="badge bg-primary" style="font-size:.6rem">Bạn</span>':''}</span>
+                </div>
+                ${r.comment?`<div class="rv-comment">${escapeHtml(r.comment)}</div>`:''}
+                <div class="rv-meta mt-1">Khách hàng #${r.customer_id} ${r.is_verified?'<span class="badge bg-success" style="font-size:.65rem">Đã mua</span>':''}</div>
+            </div>`;
+        }).join('');
+    }catch(e){
+        box.innerHTML='<div class="text-muted text-center py-3" style="font-size:.88rem">Không tải được đánh giá</div>';
+    }
+}
+
+/* ---- Review form logic ---- */
+let selectedRating=0;
+(function initStarPicker(){
+    document.getElementById('rv-stars').addEventListener('click',function(e){
+        const v=e.target.dataset.v;
+        if(!v)return;
+        selectedRating=parseInt(v);
+        updateStarUI();
+    });
+    // Hover effect
+    document.getElementById('rv-stars').addEventListener('mouseover',function(e){
+        const v=e.target.dataset.v;
+        if(!v)return;
+        const icons=this.querySelectorAll('i');
+        icons.forEach((ic,i)=>ic.className=i<parseInt(v)?'bi bi-star-fill active':'bi bi-star');
+    });
+    document.getElementById('rv-stars').addEventListener('mouseout',function(){
+        updateStarUI();
+    });
+})();
+function updateStarUI(){
+    document.querySelectorAll('#rv-stars i').forEach((ic,i)=>{
+        ic.className=i<selectedRating?'bi bi-star-fill active':'bi bi-star';
+    });
+}
+function resetReviewForm(){
+    selectedRating=0;updateStarUI();
+    document.getElementById('rv-id').value='';
+    document.getElementById('rv-title-input').value='';
+    document.getElementById('rv-comment-input').value='';
+    document.getElementById('rv-form-title').textContent='✎ Viết đánh giá của bạn';
+    document.getElementById('rv-form-badge').style.display='none';
+    document.getElementById('rv-delete-btn').style.display='none';
+}
+function fillReviewForm(r){
+    selectedRating=r.rating;updateStarUI();
+    document.getElementById('rv-id').value=r.id;
+    document.getElementById('rv-title-input').value=r.title||'';
+    document.getElementById('rv-comment-input').value=r.comment||'';
+    document.getElementById('rv-form-title').textContent='✎ Chỉnh sửa đánh giá của bạn';
+    document.getElementById('rv-form-badge').style.display='';
+    document.getElementById('rv-delete-btn').style.display='';
+}
+async function submitReview(){
+    const me=getUser();if(!me||!currentBook)return;
+    if(selectedRating<1){showToast('Vui lòng chọn số sao','danger');return;}
+    const rvId=document.getElementById('rv-id').value;
+    const body={
+        book_id:currentBook.id,
+        customer_id:me.id,
+        rating:selectedRating,
+        title:document.getElementById('rv-title-input').value.trim(),
+        comment:document.getElementById('rv-comment-input').value.trim()
+    };
+    try{
+        if(rvId){
+            await apiFetch('/reviews/'+rvId+'/',{method:'PATCH',body});
+            showToast('Đã cập nhật đánh giá!');
+        }else{
+            await apiFetch('/reviews/',{method:'POST',body});
+            showToast('Đã gửi đánh giá!');
+        }
+        loadBookReviews(currentBook.id);
+    }catch(e){
+        showToast(e.data?.detail||e.data?.error||'Lỗi gửi đánh giá','danger');
+    }
+}
+async function deleteMyReview(){
+    const rvId=document.getElementById('rv-id').value;
+    if(!rvId||!confirm('Xóa đánh giá của bạn?'))return;
+    try{
+        await apiFetch('/reviews/'+rvId+'/',{method:'DELETE'});
+        showToast('Đã xóa đánh giá');
+        loadBookReviews(currentBook.id);
+    }catch(e){
+        showToast('Lỗi xóa','danger');
+    }
+}
+
+function changeQty(d){const el=document.getElementById('bm-qty');el.value=Math.max(1,parseInt(el.value||1)+d);}
+
+async function addToCart(bookId,qty){
+    const u=getUser();
+    if(!u){window.location.href='/login/';return;}
+    try{
+        // Get cart first
+        const cart=await apiFetch('/carts/my_cart/?customer_id='+u.id);
+        await apiFetch(`/carts/${cart.id}/add_item/`,{method:'POST',body:{book_id:bookId,quantity:qty}});
+        trackBehavior(bookId,'add_to_cart');
+        showToast('Đã thêm vào giỏ hàng!');
+        // Update badge
+        const c2=await apiFetch('/carts/my_cart/?customer_id='+u.id);
+        updateCartBadge(c2.total_items||0);
+    }catch(e){
+        showToast(e.data?.error||'Không thể thêm vào giỏ','danger');
+    }
+}
+
+function quickAdd(bookId){addToCart(bookId,1);}
+function addToCartFromModal(){if(!currentBook)return;const qty=parseInt(document.getElementById('bm-qty').value||1);addToCart(currentBook.id,qty);}
+
+loadCategories();
+loadBooks();
+// Auto-open book detail from URL param (e.g. from recommendations page)
+const urlBookId=new URLSearchParams(window.location.search).get('book');
+if(urlBookId){
+    apiFetch('/books/'+urlBookId+'/').then(b=>{
+        if(!allBooks.find(x=>x.id===b.id))allBooks.push(b);
+        openDetail(b.id);
+    }).catch(()=>{});
+}
+</script>
+{% endblock %}

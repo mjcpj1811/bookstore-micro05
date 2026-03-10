@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block extra_css %}
+:root { --cust-accent: #2563eb; --nav-height: 64px; }
+/* ─── Top navbar ─── */
+.store-nav {
+    position: sticky; top: 0; z-index: 1000; background: #fff;
+    border-bottom: 1px solid var(--gray-100);
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.store-nav .inner {
+    max-width: 1280px; margin: 0 auto; padding: 0 1.25rem;
+    height: var(--nav-height); display: flex; align-items: center; gap: 1rem;
+}
+.store-nav .brand {
+    font-weight: 800; font-size: 1.25rem; color: var(--cust-accent);
+    display: flex; align-items: center; gap: .5rem; white-space: nowrap;
+}
+.store-nav .brand i { font-size: 1.4rem; }
+.store-nav .nav-links { display: flex; gap: .25rem; margin-left: 1.5rem; }
+.store-nav .nav-links a {
+    padding: .45rem .85rem; border-radius: .5rem; font-size: .88rem;
+    font-weight: 500; color: var(--gray-600); transition: var(--transition);
+}
+.store-nav .nav-links a:hover { color: var(--cust-accent); background: rgba(37,99,235,.05); }
+.store-nav .nav-links a.active { color: var(--cust-accent); background: rgba(37,99,235,.08); font-weight: 600; }
+.store-nav .nav-right { margin-left: auto; display: flex; align-items: center; gap: .6rem; }
+.store-nav .cart-icon {
+    position: relative; width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--gray-600); transition: var(--transition); cursor: pointer;
+}
+.store-nav .cart-icon:hover { background: var(--gray-100); color: var(--cust-accent); }
+.store-nav .cart-icon .cart-count {
+    position: absolute; top: 2px; right: 2px; width: 18px; height: 18px;
+    background: #ef4444; color: #fff; font-size: .65rem; font-weight: 700;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+}
+.store-nav .user-btn {
+    display: flex; align-items: center; gap: .45rem; padding: .35rem .7rem;
+    border-radius: .5rem; cursor: pointer; transition: var(--transition);
+}
+.store-nav .user-btn:hover { background: var(--gray-100); }
+.store-nav .user-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--cust-accent), #7c3aed);
+    color: #fff; font-weight: 700; font-size: .8rem;
+    display: flex; align-items: center; justify-content: center;
+}
+.store-nav .user-name { font-weight: 600; font-size: .85rem; color: var(--gray-700); }
+/* ─── Main ─── */
+.store-main { max-width: 1280px; margin: 0 auto; padding: 1.5rem 1.25rem; min-height: calc(100vh - var(--nav-height) - 60px); }
+/* ─── Footer ─── */
+.store-footer { background: var(--gray-800); color: rgba(255,255,255,.6); text-align: center; padding: 1rem; font-size: .8rem; }
+/* ─── Auth guard placeholder (customer pages don't strictly require login to browse) ─── */
+body:not(.logged-in) .auth-only { display: none !important; }
+/* ─── Mobile ─── */
+@media (max-width: 767px) {
+    .store-nav .nav-links { display: none; }
+    .store-nav .inner { padding: 0 .75rem; }
+    .store-main { padding: 1rem .75rem; }
+}
+{% endblock %}
+{% block body_content %}
+<nav class="store-nav">
+    <div class="inner">
+        <a href="/customer/" class="brand"><i class="bi bi-book-half"></i> BookStore</a>
+        <div class="nav-links">
+            <a href="/customer/" class="{% if active_page == 'home' %}active{% endif %}"><i class="bi bi-house-door me-1"></i>Trang chủ</a>
+            <a href="/customer/orders/" class="{% if active_page == 'cust_orders' %}active{% endif %}"><i class="bi bi-receipt me-1"></i>Đơn hàng</a>
+            <a href="/customer/recommendations/" class="{% if active_page == 'cust_recommend' %}active{% endif %}"><i class="bi bi-lightbulb me-1"></i>Gợi ý</a>
+        </div>
+        <div class="nav-right">
+            <a href="/customer/cart/" class="cart-icon" title="Giỏ hàng">
+                <i class="bi bi-cart3" style="font-size:1.2rem"></i>
+                <span class="cart-count" id="nav-cart-count" style="display:none">0</span>
+            </a>
+            <!-- Not logged in -->
+            <div id="nav-guest">
+                <a href="/login/" class="btn btn-primary btn-sm"><i class="bi bi-box-arrow-in-right me-1"></i>Đăng nhập</a>
+            </div>
+            <!-- Logged in -->
+            <div id="nav-user" class="dropdown" style="display:none">
+                <a class="user-btn dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                    <div class="user-avatar" id="cu-avatar">U</div>
+                    <span class="user-name d-none d-md-inline" id="cu-name">User</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width:220px;border-radius:var(--radius)">
+                    <li class="px-3 py-2 border-bottom">
+                        <small class="text-muted">Đang đăng nhập</small><br>
+                        <strong id="cu-fullname" style="font-size:.9rem"></strong>
+                    </li>
+                    <li><a class="dropdown-item py-2" href="/customer/profile/"><i class="bi bi-person me-2"></i>Hồ sơ của tôi</a></li>
+                    <li><hr class="dropdown-divider my-1"></li>
+                    <li><a class="dropdown-item py-2 text-danger" href="#" onclick="logout();return false"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+<main class="store-main">
+    <div id="loading" class="show"><div class="spinner-border" style="color:var(--cust-accent)" role="status"><span class="visually-hidden">Loading...</span></div></div>
+    {% block content %}{% endblock %}
+</main>
+<footer class="store-footer">&copy; 2026 BookStore &mdash; Hệ thống bán sách trực tuyến</footer>
+<script>
+(function(){
+    const u=getUser();
+    if(u){
+        document.getElementById('nav-guest').style.display='none';
+        document.getElementById('nav-user').style.display='';
+        document.getElementById('cu-avatar').textContent=(u.full_name||u.username||'U').charAt(0).toUpperCase();
+        document.getElementById('cu-name').textContent=u.full_name||u.username;
+        document.getElementById('cu-fullname').textContent=u.full_name||u.username;
+        document.body.classList.add('logged-in');
+        // Load cart count
+        apiFetch('/carts/my_cart/?customer_id='+u.id).then(c=>{
+            const n=c.total_items||0;
+            const el=document.getElementById('nav-cart-count');
+            if(n>0){el.textContent=n;el.style.display='flex';}
+        }).catch(()=>{});
+    }
+})();
+function updateCartBadge(n){const el=document.getElementById('nav-cart-count');if(n>0){el.textContent=n;el.style.display='flex';}else{el.style.display='none';}}
+</script>
+{% endblock %}

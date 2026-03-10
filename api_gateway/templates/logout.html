@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Đăng xuất - BookStore{% endblock %}
+{% block body_content %}
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center">
+    <div class="text-center">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p class="text-muted">Đang đăng xuất...</p>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+localStorage.removeItem('bookstore_user');
+localStorage.removeItem('bookstore_role');
+window.location.href='/login/';
+</script>
+{% endblock %}

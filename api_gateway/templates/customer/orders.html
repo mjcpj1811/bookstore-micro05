@@ -1,0 +1,132 @@
+{% extends "customer/base.html" %}
+{% block title %}Đơn hàng - BookStore{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 style="font-weight:700"><i class="bi bi-receipt me-2"></i>Đơn hàng của tôi</h4>
+    <select class="form-select" style="width:170px" id="status-filter" onchange="orderPage=1;loadOrders()">
+        <option value="">Tất cả</option>
+        <option value="pending">Chờ xử lý</option>
+        <option value="confirmed">Đã xác nhận</option>
+        <option value="processing">Đang xử lý</option>
+        <option value="shipped">Đang giao</option>
+        <option value="delivered">Đã giao</option>
+        <option value="cancelled">Đã hủy</option>
+    </select>
+</div>
+
+<div id="orders-empty" style="display:none" class="text-center py-5">
+    <i class="bi bi-receipt-cutoff" style="font-size:4rem;color:var(--gray-300)"></i>
+    <p class="text-muted mt-2 mb-3">Bạn chưa có đơn hàng nào</p>
+    <a href="/customer/" class="btn btn-primary">Mua sắm ngay</a>
+</div>
+
+<div id="orders-list"></div>
+<div id="orders-pager"></div>
+
+<!-- Order detail modal -->
+<div class="modal fade" id="orderModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Chi tiết đơn hàng <span id="od-number"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <p class="mb-1"><span class="text-muted">Trạng thái:</span> <span id="od-status"></span></p>
+                <p class="mb-1"><span class="text-muted">Ngày đặt:</span> <span id="od-date"></span></p>
+                <p class="mb-1"><span class="text-muted">Thanh toán:</span> <span id="od-payment"></span></p>
+            </div>
+            <div class="col-md-6">
+                <p class="mb-1"><span class="text-muted">Tạm tính:</span> <span id="od-subtotal"></span></p>
+                <p class="mb-1"><span class="text-muted">Phí ship:</span> <span id="od-ship"></span></p>
+                <p class="mb-1"><strong>Tổng:</strong> <strong style="color:#ef4444" id="od-total"></strong></p>
+            </div>
+        </div>
+        <table class="table table-sm">
+            <thead><tr><th>Sách</th><th>Đơn giá</th><th>SL</th><th>Thành tiền</th></tr></thead>
+            <tbody id="od-items"></tbody>
+        </table>
+        <div id="od-history" class="mt-3"></div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-danger btn-sm" id="btn-cancel" style="display:none" onclick="cancelOrder()"><i class="bi bi-x-circle me-1"></i>Hủy đơn</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+    </div>
+</div></div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const u=getUser();
+if(!u)window.location.href='/login/';
+let currentOrderId=null, orderPage=1;
+const ORDER_PER_PAGE=20;
+
+const statusMap={pending:'Chờ xử lý',confirmed:'Đã xác nhận',processing:'Đang xử lý',shipped:'Đang giao',delivered:'Đã giao',cancelled:'Đã hủy',refunded:'Hoàn tiền'};
+const statusColor={pending:'warning',confirmed:'info',processing:'primary',shipped:'indigo',delivered:'success',cancelled:'danger',refunded:'secondary'};
+
+async function loadOrders(){
+    const status=document.getElementById('status-filter').value;
+    let qs='?customer_id='+u.id;
+    if(status)qs+='&status='+status;
+    try{
+        const data=await apiFetch('/orders/'+qs);
+        const orders=data.results||data;
+        if(!orders.length){
+            document.getElementById('orders-empty').style.display='';
+            document.getElementById('orders-list').innerHTML='';
+        }else{
+            document.getElementById('orders-empty').style.display='none';
+            document.getElementById('orders-list').innerHTML=orders.map(o=>`
+                <div class="card mb-3" style="cursor:pointer" onclick="viewOrder(${o.id})">
+                    <div class="card-body d-flex align-items-center flex-wrap gap-3">
+                        <div style="flex:1;min-width:200px">
+                            <strong>${escapeHtml(o.order_number||'#'+o.id)}</strong>
+                            <div class="text-muted" style="font-size:.82rem">${formatDate(o.order_date||o.created_at)}</div>
+                        </div>
+                        <div>${(o.items||[]).length} sản phẩm</div>
+                        <div><strong style="color:#ef4444">${formatMoney(o.final_amount)}</strong></div>
+                        <span class="badge bg-${statusColor[o.status]||'secondary'}">${statusMap[o.status]||o.status}</span>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }catch(e){showToast('Không thể tải đơn hàng','danger');}
+    hideLoading();
+}
+
+async function viewOrder(id){
+    currentOrderId=id;
+    try{
+        const o=await apiFetch('/orders/'+id+'/');
+        document.getElementById('od-number').textContent=o.order_number||'#'+o.id;
+        document.getElementById('od-status').innerHTML=`<span class="badge bg-${statusColor[o.status]||'secondary'}">${statusMap[o.status]||o.status}</span>`;
+        document.getElementById('od-date').textContent=formatDate(o.order_date||o.created_at);
+        document.getElementById('od-payment').textContent=o.payment_method||'COD';
+        document.getElementById('od-subtotal').textContent=formatMoney(o.subtotal);
+        document.getElementById('od-ship').textContent=formatMoney(o.shipping_fee);
+        document.getElementById('od-total').textContent=formatMoney(o.final_amount);
+        document.getElementById('od-items').innerHTML=(o.items||[]).map(it=>`
+            <tr><td>${escapeHtml(it.book_title||'Sách #'+it.book_id)}</td><td>${formatMoney(it.unit_price)}</td><td>${it.quantity}</td><td>${formatMoney(it.subtotal)}</td></tr>
+        `).join('')||'<tr><td colspan="4" class="text-muted text-center">Không có</td></tr>';
+
+        // Status history
+        const hist=(o.status_history||[]);
+        document.getElementById('od-history').innerHTML=hist.length?`<h6 class="fw-bold" style="font-size:.85rem">Lịch sử trạng thái</h6><div class="list-group list-group-flush">${hist.map(h=>`<div class="list-group-item px-0 py-2 border-0"><span class="badge bg-${statusColor[h.status]||'secondary'} me-2">${statusMap[h.status]||h.status}</span><small class="text-muted">${formatDate(h.changed_at)}</small> ${h.description?'- '+escapeHtml(h.description):''}</div>`).join('')}</div>`:'';
+
+        // Show cancel button only for pending/confirmed
+        document.getElementById('btn-cancel').style.display=['pending','confirmed'].includes(o.status)?'':'none';
+        new bootstrap.Modal(document.getElementById('orderModal')).show();
+    }catch(e){showToast('Lỗi tải chi tiết','danger');}
+}
+
+async function cancelOrder(){
+    if(!confirm('Bạn chắc chắn muốn hủy đơn hàng này?'))return;
+    try{
+        await apiFetch(`/orders/${currentOrderId}/update_status/`,{method:'POST',body:{status:'cancelled',description:'Khách hàng hủy đơn'}});
+        showToast('Đã hủy đơn hàng');
+        bootstrap.Modal.getInstance(document.getElementById('orderModal')).hide();
+        loadOrders();
+    }catch(e){showToast('Lỗi hủy đơn','danger');}
+}
+
+loadOrders();
+</script>
+{% endblock %}
