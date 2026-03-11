@@ -3,16 +3,19 @@
 {% block content %}
 <!-- Hero -->
 <div class="home-hero mb-4">
-    <div class="row align-items-center">
-        <div class="col-lg-7">
-            <h1 style="font-weight:800;font-size:2rem;color:var(--gray-900)">Khám phá thế giới sách <span style="color:var(--cust-accent)">📚</span></h1>
-            <p class="text-muted mb-3">Tìm kiếm hàng ngàn đầu sách với giá tốt nhất. Giao hàng nhanh chóng trên toàn quốc.</p>
-            <div class="d-flex gap-2 flex-wrap">
-                <div class="input-group" style="max-width:400px">
+    <div class="home-hero-backdrop"></div>
+    <div class="home-hero-overlay"></div>
+    <div class="home-hero-content">
+        <div class="home-hero-copy">
+            <span class="home-hero-kicker">BookStore Online</span>
+            <h1>Khám phá thế giới sách</h1>
+            <p>Tìm kiếm hàng ngàn đầu sách với giá tốt nhất. Giao hàng nhanh chóng trên toàn quốc.</p>
+            <div class="home-hero-actions d-flex gap-2 flex-wrap">
+                <div class="input-group home-hero-search">
                     <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
                     <input type="text" class="form-control border-start-0" id="search-input" placeholder="Tìm sách theo tên, ISBN..." oninput="debounceSearch()">
                 </div>
-                <select class="form-select" style="max-width:160px" id="sort-select" onchange="bookPage=1;loadBooks()">
+                <select class="form-select home-hero-sort" id="sort-select" onchange="bookPage=1;loadBooks()">
                     <option value="">Mới nhất</option>
                     <option value="price_asc">Giá tăng</option>
                     <option value="price_desc">Giá giảm</option>
@@ -90,6 +93,18 @@
 {% endblock %}
 {% block extra_css %}
 {{ block.super }}
+.home-hero{position:relative;overflow:hidden;border-radius:24px;min-height:320px;padding:2rem;display:flex;align-items:flex-end;background:#14213d;box-shadow:0 24px 60px rgba(15,23,42,.18)}
+.home-hero-backdrop{position:absolute;inset:0;background-image:url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=1600&q=80');background-size:cover;background-position:center;transform:scale(1.04)}
+.home-hero-overlay{position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,16,34,.82) 0%,rgba(7,16,34,.64) 42%,rgba(7,16,34,.34) 100%)}
+.home-hero-content{position:relative;z-index:1;max-width:760px;width:100%}
+.home-hero-copy{color:#fff}
+.home-hero-kicker{display:inline-block;margin-bottom:.75rem;padding:.35rem .75rem;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(255,255,255,.08);font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.home-hero h1{margin:0 0 .75rem;font-size:clamp(2rem,4vw,3.25rem);line-height:1.05;font-weight:800;color:#fff}
+.home-hero p{margin:0 0 1.2rem;max-width:620px;font-size:1rem;line-height:1.6;color:rgba(255,255,255,.84)}
+.home-hero-search{max-width:430px}
+.home-hero-sort{max-width:170px}
+.home-hero .input-group-text,.home-hero .form-control,.home-hero .form-select{border-color:rgba(255,255,255,.22)}
+@media (max-width: 768px){.home-hero{min-height:280px;padding:1.25rem}.home-hero-overlay{background:linear-gradient(180deg,rgba(7,16,34,.72) 0%,rgba(7,16,34,.82) 100%)}.home-hero-content{max-width:none}.home-hero-search,.home-hero-sort{max-width:none;width:100%}}
 .bk-card{border-radius:var(--radius);overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:var(--transition);cursor:pointer;height:100%;display:flex;flex-direction:column}
 .bk-card:hover{transform:translateY(-3px);box-shadow:0 8px 25px rgba(0,0,0,.1)}
 .bk-card .bk-img{height:200px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
