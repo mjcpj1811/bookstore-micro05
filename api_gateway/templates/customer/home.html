@@ -129,7 +129,7 @@
 {% block scripts %}
 <script>
 let allBooks=[], selectedCat=null, searchTimer=null, currentBook=null, bookPage=1, bookCount=0;
-const BOOK_PER_PAGE=20;
+const BOOK_PER_PAGE=18;
 
 async function loadCategories(){
     try{
@@ -167,6 +167,7 @@ async function loadBooks(){
     if(sort)params.push('sort_by='+encodeURIComponent(sort));
     if(selectedCat)params.push('category_id='+selectedCat);
     params.push('is_active=true');
+    params.push('page_size='+BOOK_PER_PAGE);
     params.push('page='+bookPage);
     const qs='?'+params.join('&');
     try{
