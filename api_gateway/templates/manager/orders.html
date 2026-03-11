@@ -50,18 +50,22 @@ function addItemRow(bk,qty,pr){const d=document.createElement('div');d.className
 function openModal(item){document.getElementById('editId').value=item?item.id:'';document.getElementById('modal-title').textContent=item?'Sửa đơn hàng':'Tạo đơn hàng';
 ['customer_id','status','shipping_address_id','payment_method','shipping_fee','discount','notes'].forEach(f=>{const el=document.getElementById('f-'+f);if(el)el.value=item?item[f]||'':'';});
 document.getElementById('items-list').innerHTML='';
-document.getElementById('items-section').style.display=item?'none':'block';
-if(!item)addItemRow();
+document.getElementById('items-section').style.display='block';
+if(item&&(item.items||[]).length){
+item.items.forEach(it=>addItemRow(it.book_id,it.quantity,it.unit_price));
+}else{
+addItemRow();
+}
 new bootstrap.Modal(document.getElementById('formModal')).show();}
 function editItem(item){openModal(item);}
 async function saveItem(){const id=document.getElementById('editId').value;const body={};
 ['customer_id','shipping_address_id','payment_method','shipping_fee','discount','notes','status'].forEach(f=>{const v=document.getElementById('f-'+f).value;if(v){if(['customer_id','shipping_address_id','shipping_fee','discount'].includes(f))body[f]=parseFloat(v);else body[f]=v;}});
-if(!id){const rows=document.querySelectorAll('#items-list .input-group');const items=[];
+const rows=document.querySelectorAll('#items-list .input-group');const items=[];
 rows.forEach(row=>{const bid=row.querySelector('[data-f="book_id"]').value;const qty=row.querySelector('[data-f="quantity"]').value;const pr=row.querySelector('[data-f="price"]').value;if(bid&&qty)items.push({book_id:parseInt(bid),quantity:parseInt(qty),unit_price:parseFloat(pr)||0,subtotal:(parseFloat(pr)||0)*parseInt(qty)});});
 body.items=items;
 body.subtotal=items.reduce((s,it)=>s+it.subtotal,0);
-body.final_amount=body.subtotal+(body.shipping_fee||0)-(body.discount||0);}
-try{if(id)await apiFetch(`${EP}${id}/`,{method:'PUT',body});else await apiFetch(EP,{method:'POST',body});bootstrap.Modal.getInstance(document.getElementById('formModal')).hide();showToast(id?'Đã cập nhật':'Đã tạo');loadData();}catch(e){showToast(JSON.stringify(e.data||'Lỗi'),'danger');}}
+body.final_amount=body.subtotal+(body.shipping_fee||0)-(body.discount||0);
+try{if(id)await apiFetch(`${EP}${id}/`,{method:'PATCH',body});else await apiFetch(EP,{method:'POST',body});bootstrap.Modal.getInstance(document.getElementById('formModal')).hide();showToast(id?'Đã cập nhật':'Đã tạo');loadData();}catch(e){showToast(JSON.stringify(e.data||'Lỗi'),'danger');}}
 async function deleteItem(id){if(!confirm('Chắc chắn xóa?'))return;try{await apiFetch(`${EP}${id}/`,{method:'DELETE'});showToast('Đã xóa');loadData();}catch(e){showToast('Lỗi','danger');}}
 loadData();
 </script>

@@ -28,6 +28,7 @@ services:
       - DB_PORT=3306
       - DB_USER=root
       - DB_PASSWORD=123456
+      - MANAGER_SERVICE_URL=http://manager-service:8002
 
   manager-service:
     build:

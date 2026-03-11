@@ -36,17 +36,17 @@ async function loadData(p){curPage=p||1;try{const data=await apiFetch(EP+'?page=
     <td><button class="btn btn-outline-primary btn-action" onclick='editItem(${JSON.stringify(r).replace(/\x27/g,"&#39;")})'><i class="bi bi-pencil"></i></button><button class="btn btn-outline-danger btn-action" onclick="deleteItem(${r.id})"><i class="bi bi-trash"></i></button></td></tr>`).join(''):'<tr><td colspan="7" class="text-center text-muted py-4">Chưa có</td></tr>';
 renderPagination('data-pager',count,curPage,PER_PAGE,'loadData');}catch(e){showToast('Lỗi','danger');}hideLoading();}
 function openModal(item){document.getElementById('editId').value=item?item.id:'';document.getElementById('modal-title').textContent=item?'Sửa thể loại':'Thêm thể loại';
-['name','slug','description','icon_url'].forEach(f=>{document.getElementById('f-'+f).value=item?item[f]||'':'';});
-document.getElementById('f-parent_category').value=item?item.parent_category||'':'';document.getElementById('f-display_order').value=item?item.display_order||0:0;
+['name','slug','description','icon_url'].forEach(f=>{document.getElementById('f-'+f).value=item?(item[f]??''):'';});
+document.getElementById('f-parent_category').value=item?(item.parent_category??''):'';document.getElementById('f-display_order').value=item?(item.display_order??0):0;
 document.getElementById('f-is_active').checked=item?item.is_active!==false:true;
 new bootstrap.Modal(document.getElementById('formModal')).show();}
 function editItem(item){openModal(item);}
 async function saveItem(){const id=document.getElementById('editId').value;const body={name:document.getElementById('f-name').value};
-['slug','description','icon_url'].forEach(f=>{const v=document.getElementById('f-'+f).value;if(v)body[f]=v;});
+['slug','description','icon_url'].forEach(f=>{const v=document.getElementById('f-'+f).value;if(v!==''||!id)body[f]=v;});
 const pc=document.getElementById('f-parent_category').value;if(pc)body.parent_category=parseInt(pc);
 body.display_order=parseInt(document.getElementById('f-display_order').value)||0;
 body.is_active=document.getElementById('f-is_active').checked;
-try{if(id)await apiFetch(`${EP}${id}/`,{method:'PUT',body});else await apiFetch(EP,{method:'POST',body});bootstrap.Modal.getInstance(document.getElementById('formModal')).hide();showToast(id?'Đã cập nhật':'Đã thêm');loadData();}catch(e){showToast(JSON.stringify(e.data||'Lỗi'),'danger');}}
+try{if(id)await apiFetch(`${EP}${id}/`,{method:'PATCH',body});else await apiFetch(EP,{method:'POST',body});bootstrap.Modal.getInstance(document.getElementById('formModal')).hide();showToast(id?'Đã cập nhật':'Đã thêm');loadData();}catch(e){showToast(JSON.stringify(e.data||'Lỗi'),'danger');}}
 async function deleteItem(id){if(!confirm('Chắc chắn xóa?'))return;try{await apiFetch(`${EP}${id}/`,{method:'DELETE'});showToast('Đã xóa');loadData();}catch(e){showToast('Lỗi','danger');}}
 loadData();
 </script>

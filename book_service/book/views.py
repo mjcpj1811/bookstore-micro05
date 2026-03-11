@@ -54,7 +54,7 @@ class BookViewSet(viewsets.ModelViewSet):
             )
 
         # Sort
-        sort_by = params.get('sort_by', '-created_at')
+        sort_by = params.get('sort_by') or params.get('sort') or '-created_at'
         sort_map = {
             'price_asc': 'price',
             'price_desc': '-price',

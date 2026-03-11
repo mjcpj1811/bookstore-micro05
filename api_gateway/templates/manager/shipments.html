@@ -51,13 +51,13 @@ async function loadCarriers(){try{const data=await apiFetch('/shipments/carriers
     <td><button class="btn btn-outline-primary btn-action" onclick='editCarrier(${JSON.stringify(r).replace(/\x27/g,"&#39;")})'><i class="bi bi-pencil"></i></button><button class="btn btn-outline-danger btn-action" onclick="deleteCarrier(${r.id})"><i class="bi bi-trash"></i></button></td></tr>`).join(''):'<tr><td colspan="7" class="text-center text-muted py-4">Chưa có</td></tr>';
 }catch(e){}}
 function openCarrierModal(item){document.getElementById('cEditId').value=item?item.id:'';document.getElementById('carrier-title').textContent=item?'Sửa NVC':'Thêm NVC';
-['name','code','phone','website','description'].forEach(f=>{document.getElementById('c-'+f).value=item?item[f]||'':'';});
+['name','code','phone','website','description'].forEach(f=>{document.getElementById('c-'+f).value=item?(item[f]??''):'';});
 document.getElementById('c-is_active').checked=item?item.is_active!==false:true;
 new bootstrap.Modal(document.getElementById('carrierModal')).show();}
 function editCarrier(item){openCarrierModal(item);}
 async function saveCarrier(){const id=document.getElementById('cEditId').value;const body={name:document.getElementById('c-name').value};
-['code','phone','website','description'].forEach(f=>{const v=document.getElementById('c-'+f).value;if(v)body[f]=v;});body.is_active=document.getElementById('c-is_active').checked;
-try{if(id)await apiFetch(`/shipments/carriers/${id}/`,{method:'PUT',body});else await apiFetch('/shipments/carriers/',{method:'POST',body});bootstrap.Modal.getInstance(document.getElementById('carrierModal')).hide();showToast(id?'Đã cập nhật':'Đã thêm');loadCarriers();}catch(e){showToast(JSON.stringify(e.data||'Lỗi'),'danger');}}
+['code','phone','website','description'].forEach(f=>{const v=document.getElementById('c-'+f).value;if(v!==''||!id)body[f]=v;});body.is_active=document.getElementById('c-is_active').checked;
+try{if(id)await apiFetch(`/shipments/carriers/${id}/`,{method:'PATCH',body});else await apiFetch('/shipments/carriers/',{method:'POST',body});bootstrap.Modal.getInstance(document.getElementById('carrierModal')).hide();showToast(id?'Đã cập nhật':'Đã thêm');loadCarriers();}catch(e){showToast(JSON.stringify(e.data||'Lỗi'),'danger');}}
 async function deleteCarrier(id){if(!confirm('Xóa?'))return;try{await apiFetch(`/shipments/carriers/${id}/`,{method:'DELETE'});showToast('Đã xóa');loadCarriers();}catch(e){showToast('Lỗi','danger');}}
 loadShipments();loadCarriers();
 </script>

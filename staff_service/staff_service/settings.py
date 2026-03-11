@@ -38,6 +38,10 @@ DATABASES = {
     }
 }
 
+SERVICE_URLS = {
+    'MANAGER_SERVICE': os.environ.get('MANAGER_SERVICE_URL', 'http://localhost:8002'),
+}
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',

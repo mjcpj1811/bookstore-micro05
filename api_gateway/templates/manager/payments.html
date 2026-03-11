@@ -52,7 +52,7 @@ document.getElementById('m-name').value=item?item.name:'';document.getElementByI
 new bootstrap.Modal(document.getElementById('methodModal')).show();}
 function editMethod(item){openMethodModal(item);}
 async function saveMethod(){const id=document.getElementById('mEditId').value;const body={name:document.getElementById('m-name').value,description:document.getElementById('m-description').value,is_active:document.getElementById('m-is_active').checked};
-try{if(id)await apiFetch(`/payments/methods/${id}/`,{method:'PUT',body});else await apiFetch('/payments/methods/',{method:'POST',body});bootstrap.Modal.getInstance(document.getElementById('methodModal')).hide();showToast(id?'Đã cập nhật':'Đã thêm');loadMethods();}catch(e){showToast(JSON.stringify(e.data||'Lỗi'),'danger');}}
+try{if(id)await apiFetch(`/payments/methods/${id}/`,{method:'PATCH',body});else await apiFetch('/payments/methods/',{method:'POST',body});bootstrap.Modal.getInstance(document.getElementById('methodModal')).hide();showToast(id?'Đã cập nhật':'Đã thêm');loadMethods();}catch(e){showToast(JSON.stringify(e.data||'Lỗi'),'danger');}}
 async function deleteMethod(id){if(!confirm('Xóa?'))return;try{await apiFetch(`/payments/methods/${id}/`,{method:'DELETE'});showToast('Đã xóa');loadMethods();}catch(e){showToast('Lỗi','danger');}}
 loadPayments();loadMethods();
 </script>

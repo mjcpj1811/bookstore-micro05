@@ -149,7 +149,7 @@ async function loadBooks(){
     const sort=document.getElementById('sort-select').value;
     let params=[];
     if(search)params.push('search='+encodeURIComponent(search));
-    if(sort)params.push('sort='+sort);
+    if(sort)params.push('sort_by='+encodeURIComponent(sort));
     if(selectedCat)params.push('category_id='+selectedCat);
     params.push('is_active=true');
     params.push('page='+bookPage);

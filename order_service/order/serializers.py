@@ -29,3 +29,17 @@ class OrderSerializer(serializers.ModelSerializer):
         for item in items_data:
             OrderItem.objects.create(order=order, **item)
         return order
+
+    def update(self, instance, validated_data):
+        items_data = self.context['request'].data.get('items')
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if items_data is not None:
+            instance.items.all().delete()
+            for item in items_data:
+                OrderItem.objects.create(order=instance, **item)
+
+        return instance
