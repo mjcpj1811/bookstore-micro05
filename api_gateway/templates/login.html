@@ -39,15 +39,6 @@ body{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh
 {% endblock %}
 {% block scripts %}
 <script>
-async function tryLogin(endpoint, body) {
-    try {
-        const data = await apiFetch(endpoint, { method: 'POST', body });
-        return data;
-    } catch (e) {
-        return null;
-    }
-}
-
 async function doLogin(e) {
     e.preventDefault();
     const username = document.getElementById('lg-user').value.trim();
@@ -58,22 +49,18 @@ async function doLogin(e) {
     btn.disabled = true; btn.textContent = 'Đang đăng nhập...';
 
     const body = { username, password };
-    const [custData, staffData, mgrData] = await Promise.all([
-        tryLogin('/customers/login/', body),
-        tryLogin('/staff/login/', body),
-        tryLogin('/manager/login/', body)
-    ]);
 
-    if (mgrData) {
-        setUser(mgrData, 'manager');
-        window.location.href = '/manager/';
-    } else if (staffData) {
-        setUser(staffData, 'staff');
-        window.location.href = '/staff/';
-    } else if (custData) {
-        setUser(custData, 'customer');
-        window.location.href = '/customer/';
-    } else {
+    try {
+        const data = await apiFetch('/auth/login/', { method: 'POST', body });
+        if (data && data.token && data.user && data.role) {
+            setUser(data.user, data.role, data.token);
+            if (data.role === 'manager') window.location.href = '/manager/';
+            else if (data.role === 'staff') window.location.href = '/staff/';
+            else window.location.href = '/customer/';
+        } else {
+            throw new Error('Invalid auth response');
+        }
+    } catch (e) {
         errEl.textContent = 'Sai tên đăng nhập hoặc mật khẩu';
         errEl.style.display = '';
         btn.disabled = false; btn.textContent = 'Đăng nhập';

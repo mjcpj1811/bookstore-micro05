@@ -20,6 +20,7 @@ SERVICES = [
     ('pay_service', 8009),
     ('comment_rate_service', 8010),
     ('recommender_ai_service', 8011),
+    ('auth_service', 8012),
     ('api_gateway', 8000),
 ]
 

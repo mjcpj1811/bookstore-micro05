@@ -18,6 +18,12 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'gateway.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
 }
 
 MIDDLEWARE = [
@@ -67,4 +73,10 @@ SERVICE_URLS = {
     'PAY_SERVICE': os.environ.get('PAY_SERVICE_URL', 'http://localhost:8009'),
     'COMMENT_RATE_SERVICE': os.environ.get('COMMENT_RATE_SERVICE_URL', 'http://localhost:8010'),
     'RECOMMENDER_AI_SERVICE': os.environ.get('RECOMMENDER_AI_SERVICE_URL', 'http://localhost:8011'),
+    'AUTH_SERVICE': os.environ.get('AUTH_SERVICE_URL', 'http://localhost:8012'),
 }
+
+# Shared JWT secret between API gateway and auth-service.
+# Dùng cố định một chuỗi secret để 2 service luôn khớp nhau,
+# tránh lỗi "Invalid token" do khác cấu hình ENV.
+JWT_SECRET = 'bookstore-jwt-secret-dev'

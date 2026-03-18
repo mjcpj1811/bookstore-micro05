@@ -31,15 +31,22 @@ a{text-decoration:none;color:inherit}
 /* ===== Auth helpers ===== */
 function getUser(){try{return JSON.parse(localStorage.getItem('bookstore_user'))}catch(e){return null}}
 function getUserRole(){return localStorage.getItem('bookstore_role')||''}
-function setUser(data,role){localStorage.setItem('bookstore_user',JSON.stringify(data));localStorage.setItem('bookstore_role',role);}
+function getToken(){return localStorage.getItem('bookstore_token')||''}
+function setUser(data,role,token){localStorage.setItem('bookstore_user',JSON.stringify(data));localStorage.setItem('bookstore_role',role);if(token)localStorage.setItem('bookstore_token',token);}
 function requireRole(roles){const r=getUserRole();if(!roles.includes(r)){window.location.href='/login/';return false}return true}
-function logout(){localStorage.removeItem('bookstore_user');localStorage.removeItem('bookstore_role');window.location.href='/login/';}
+function logout(){localStorage.removeItem('bookstore_user');localStorage.removeItem('bookstore_role');localStorage.removeItem('bookstore_token');window.location.href='/login/';}
 
 /* ===== API helper ===== */
 const API_BASE='/api';
 async function apiFetch(path,opts={}){
     const url=API_BASE+path;
     const cfg={method:opts.method||'GET',headers:{'Content-Type':'application/json'}};
+    const token=getToken();
+    // Không gửi token cho các endpoint auth để tránh lỗi
+    // khi token cũ đã hết hạn mà user cần đăng nhập lại.
+    if(token && !path.startsWith('/auth/')){
+        cfg.headers['Authorization']='Bearer '+token;
+    }
     if(opts.body)cfg.body=JSON.stringify(opts.body);
     const resp=await fetch(url,cfg);
     if(resp.status===204)return {};

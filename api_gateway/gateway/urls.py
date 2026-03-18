@@ -3,6 +3,7 @@ from .views import (
     ApiRootView, StaffProxy, ManagerProxy, CustomerProxy, CatalogProxy,
     BookProxy, CartProxy, OrderProxy, ShipProxy, PayProxy,
     ReviewProxy, RecommendationProxy, ServiceHealthView,
+    AuthProxy,
 )
 
 urlpatterns = [
@@ -11,6 +12,10 @@ urlpatterns = [
 
     # Health check
     path('health/', ServiceHealthView.as_view(), name='health'),
+
+    # Auth service
+    path('auth/', AuthProxy.as_view(), name='auth-root'),
+    path('auth/<path:path>', AuthProxy.as_view(), name='auth-detail'),
 
     # Staff service
     path('staff/', StaffProxy.as_view(), name='staff-list'),

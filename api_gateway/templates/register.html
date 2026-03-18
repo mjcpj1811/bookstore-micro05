@@ -51,7 +51,17 @@ async function doRegister(e){
 
     try{
         const data=await apiFetch('/customers/',{method:'POST',body});
-        setUser(data,'customer');
+        // Auto-login via auth-service to obtain JWT
+        try{
+            const auth=await apiFetch('/auth/login/',{method:'POST',body:{username:body.username,password:body.password}});
+            if(auth && auth.token && auth.user && auth.role){
+                setUser(auth.user,auth.role,auth.token);
+            }else{
+                setUser(data,'customer');
+            }
+        }catch(e){
+            setUser(data,'customer');
+        }
         window.location.href='/customer/';
     }catch(err){
         const msgs=err.data;

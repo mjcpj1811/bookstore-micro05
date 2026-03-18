@@ -191,6 +191,25 @@ services:
       - DB_PASSWORD=123456
       - BOOK_SERVICE_URL=http://book-service:8005
 
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth_service/Dockerfile
+    ports:
+      - "8012:8012"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=123456
+      - CUSTOMER_SERVICE_URL=http://customer-service:8003
+      - STAFF_SERVICE_URL=http://staff-service:8001
+      - MANAGER_SERVICE_URL=http://manager-service:8002
+      - JWT_SECRET=super-secret-jwt-key
+
   api-gateway:
     build:
       context: .
@@ -221,6 +240,8 @@ services:
       - PAY_SERVICE_URL=http://pay-service:8009
       - COMMENT_RATE_SERVICE_URL=http://comment-rate-service:8010
       - RECOMMENDER_AI_SERVICE_URL=http://recommender-ai-service:8011
+      - AUTH_SERVICE_URL=http://auth-service:8012
+      - JWT_SECRET=super-secret-jwt-key
 
 volumes:
   mysql_data:
